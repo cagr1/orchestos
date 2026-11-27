@@ -10,7 +10,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { run, writeGateRoles } from '../lib.mjs'
+import { run, waitTurnSettled, writeGateRoles } from '../lib.mjs'
 
 async function startChat(page, projectName, agent) {
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
@@ -47,27 +47,29 @@ async function selectClaudeHaiku(page) {
   await page.keyboard.press('Escape')
 }
 
-async function sendTurn(page, message, timeout = 180_000) {
+async function sendTurn(page, api, projectId, sessionId, message, timeout = 180_000) {
   const composer = page.locator('textarea:visible').last()
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
-    { timeout },
-  )
+  const timeline = await api(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`, {
+    headers: { 'x-orchestos-project-id': projectId },
+  })
+  if (timeline.status !== 200) throw new Error(`Chat timeline returned HTTP ${timeline.status}`)
+  const knownTurnIds = new Set(timeline.data.turns.map((turn) => turn.id))
   await page.locator('button[aria-label="Send message"]:visible').last().click()
-  const response = await responsePromise
-  if (!response.ok()) throw new Error(`/api/chat returned HTTP ${response.status()}`)
-  const reply = page.locator('div.prose').last()
+  const { turnId, settled } = await waitTurnSettled(
+    api,
+    projectId,
+    sessionId,
+    knownTurnIds,
+    timeout,
+  )
+  if (settled.outcome !== 'completed')
+    throw new Error(`Chat turn ${turnId} ${settled.outcome}: ${settled.reason}`)
+  const reply = page.locator(`[data-turn-id="${turnId}"][data-settled="completed"]`)
   await reply.waitFor({ state: 'visible', timeout })
-  const deadline = Date.now() + timeout
-  while (Date.now() < deadline) {
-    const text = (await reply.innerText()).trim()
-    if (text) return text
-    await page.waitForTimeout(300)
-  }
-  return ''
+  const text = (await reply.innerText()).trim()
+  return text
 }
 
 function seedDatabase({ projectA, projectB, sessionA, sessionB, databasePath }) {
@@ -146,6 +148,12 @@ export default async function projectIsolation({
       if (project)
         await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
     }
+    // El instinto histórico (project_id null) no es de ningún proyecto: el purge no lo borra.
+    const code = `import { Database } from 'bun:sqlite'
+      const db = new Database(${JSON.stringify(databasePath)})
+      db.run("DELETE FROM instincts WHERE id = 'erp2-instinct-history'")
+      db.close()`
+    execFileSync('bun', ['-e', code], { cwd: process.cwd(), stdio: 'ignore' })
     for (const root of [rootA, rootB]) {
       if (root && existsSync(root))
         rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
@@ -162,7 +170,7 @@ export default async function projectIsolation({
   const createSession = async (project, title) => {
     const response = await api('/api/chat/sessions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-orchestos-project-id': project.id },
       body: JSON.stringify({ projectId: project.id, agent: 'api', mode: 'chat', title }),
     })
     if (response.status !== 201) throw new Error(`chat seed failed: ${JSON.stringify(response)}`)
@@ -342,7 +350,14 @@ export default async function projectIsolation({
     await page.reload({ waitUntil: 'domcontentloaded' })
     const session = await startChat(page, basename(rootA), agent)
     if (agent === 'Claude') await selectClaudeHaiku(page)
-    const reply = await sendTurn(page, 'Reply only OK.', agent === 'Codex' ? 300_000 : 180_000)
+    const reply = await sendTurn(
+      page,
+      api,
+      projectA.id,
+      session.id,
+      'Reply only OK.',
+      agent === 'Codex' ? 300_000 : 180_000,
+    )
     const prompt = readFileSync(join(captureDir, `chat-prompt-${session.id}.txt`), 'utf8')
     const cliInput = readFileSync(join(captureDir, `chat-cli-input-${session.id}.txt`), 'utf8')
     const captured = `${prompt}\n${cliInput}`

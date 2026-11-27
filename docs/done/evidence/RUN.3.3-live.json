@@ -1,0 +1,419 @@
+{
+  "item": "RUN.3.3",
+  "status": "implementation applied; cleanup verification incomplete",
+  "baseline": {
+    "command": "bunx tsc --noEmit",
+    "exitCode": 0,
+    "output": ""
+  },
+  "gates": [
+    {
+      "command": "bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows",
+      "exitCode": 0,
+      "output": "Checked 60 files in 19ms. No fixes applied.\n"
+    },
+    {
+      "command": "bun run lint",
+      "exitCode": 0,
+      "output": "$ biome check . && bun run scripts/lint-budget.ts\nscripts/agent-governance.test.ts:98:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  i Template literals are preferred over string concatenation.\n  \n     96 │   // Un cierre sin \"Gate en vivo\" (p. ej. el padre que se cierra con su hijo) no exige evidencia propia.\n     97 │   expect(\n   > 98 │     hasLiveGateEvidence(first + '+ - [x] **A.2 — padre**\\n+  Hijos cerrados.', ['a.json']),\n        │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     99 │   ).toBe(true)\n    100 │   expect(\n  \n  i Unsafe fix: Use a template literal.\n  \n     96  96 │     // Un cierre sin \"Gate en vivo\" (p. ej. el padre que se cierra con su hijo) no exige evidencia propia.\n     97  97 │     expect(\n     98     │ - ····hasLiveGateEvidence(first·+·'+·-·[x]·**A.2·—·padre**\\n+··Hijos·cerrados.',·['a.json']),\n         98 │ + ····hasLiveGateEvidence(`${first}+·-·[x]·**A.2·—·padre**\\n+··Hijos·cerrados.`,·['a.json']),\n     99  99 │     ).toBe(true)\n    100 100 │     expect(\n  \n\nscripts/agent-governance.test.ts:101:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  i Template literals are preferred over string concatenation.\n  \n     99 │   ).toBe(true)\n    100 │   expect(\n  > 101 │     hasLiveGateEvidence(first + '+ - [x] **A.2 — UI**\\n+  Gate en vivo: browser `b.json`.', [\n        │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    102 │       'a.json',\n    103 │       'b.json',\n  \n  i Unsafe fix: Use a template literal.\n  \n     99  99 │     ).toBe(true)\n    100 100 │     expect(\n    101     │ - ····hasLiveGateEvidence(first·+·'+·-·[x]·**A.2·—·UI**\\n+··Gate·en·vivo:·browser·`b.json`.',·[\n        101 │ + ····hasLiveGateEvidence(`${first}+·-·[x]·**A.2·—·UI**\\n+··Gate·en·vivo:·browser·\\`b.json\\`.`,·[\n    102 102 │         'a.json',\n    103 103 │         'b.json',\n  \n\nscripts/check-sources-drift.ts:230:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    228 │     summaries = {}\n    229 │     for (const f of findings.filter((f) => f.status === 'drift')) {\n  > 230 │       const entry = entries.find((e) => e.id === f.id)!\n        │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    231 │       const patch = fetchDiffPatch(entry.repo, entry.last_synced_sha, f.latest_sha!, entry.path)\n    232 │       if (!patch) continue\n  \n\nscripts/check-sources-drift.ts:231:71 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    229 │     for (const f of findings.filter((f) => f.status === 'drift')) {\n    230 │       const entry = entries.find((e) => e.id === f.id)!\n  > 231 │       const patch = fetchDiffPatch(entry.repo, entry.last_synced_sha, f.latest_sha!, entry.path)\n        │                                                                       ^^^^^^^^^^^^^\n    232 │       if (!patch) continue\n    233 │       try {\n  \n\nscripts/ledger-report.ts:45:25 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    43 │   for (const e of entries) {\n    44 │     table[e.model] ??= {}\n  > 45 │     const modelCounts = table[e.model]!\n       │                         ^^^^^^^^^^^^^^^\n    46 │     modelCounts[e.classification] = (modelCounts[e.classification] ?? 0) + 1\n    47 │   }\n  \n\nscripts/readme-sync.ts:60:45 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    58 │     const coverage =\n    59 │       fromLogIndex >= 0\n  > 60 │         ? { status: 0, stdout: readFileSync(args[fromLogIndex + 1]!, 'utf8'), stderr: '' }\n       │                                             ^^^^^^^^^^^^^^^^^^^^^^^\n    61 │         : runCoverage()\n    62 │     const output = `${coverage.stdout}\\n${coverage.stderr}`\n  \n\nscripts/run-evidence-gate.ts:102:49 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Unexpected any. Specify a different type.\n  \n    100 │           return row[column] ?? null\n    101 │         })\n  > 102 │         const result = insert.run(...(values as any[]))\n        │                                                 ^^^\n    103 │         exported += result.changes\n    104 │       }\n  \n  i any disables many type checking rules. Its use should be avoided.\n  \n\nscripts/run-evidence-gate.ts:186:12 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    184 │   const evidenceHomeIndex = optionArgs.indexOf('--evidence-home')\n    185 │   return {\n  > 186 │     label: optionArgs[labelIndex + 1]!,\n        │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    187 │     command,\n    188 │     evidenceHome: evidenceHomeIndex >= 0 ? optionArgs[evidenceHomeIndex + 1] : undefined,\n  \n\nscripts/ui-fidelity/capture.mjs:158:16 lint/correctness/noUnusedVariables  FIXABLE  ━━━━━━━━━━━━━━━━\n\n  ! This function reportSettingsButton is unused.\n  \n    156 │ }\n    157 │ \n  > 158 │ async function reportSettingsButton(page, report) {\n        │                ^^^^^^^^^^^^^^^^^^^^\n    159 │   const item = page.locator('aside button').filter({ hasText: 'Settings' }).last()\n    160 │   if (await item.isVisible({ timeout: 700 }).catch(() => false)) return null\n  \n  i Unused variables are often the result of typos, incomplete refactors, or other sources of bugs.\n  \n  i Unsafe fix: If this is intentional, prepend reportSettingsButton with an underscore.\n  \n    156 156 │   }\n    157 157 │   \n    158     │ - async·function·reportSettingsButton(page,·report)·{\n        158 │ + async·function·_reportSettingsButton(page,·report)·{\n    159 159 │     const item = page.locator('aside button').filter({ hasText: 'Settings' }).last()\n    160 160 │     if (await item.isVisible({ timeout: 700 }).catch(() => false)) return null\n  \n\nscripts/ui-fidelity/check-jsx.mjs:127:21 lint/correctness/noUnusedFunctionParameters  FIXABLE  ━━━━━━━━━━\n\n  ! This parameter entry is unused.\n  \n    125 │       (entry) => entry?.valor === value && relativeOrBasename(filePath).includes(entry.archivo),\n    126 │     )\n  > 127 │     .reduce((total, entry) => total + 1, 0)\n        │                     ^^^^^\n    128 │ }\n    129 │ \n  \n  i Unused parameters might be the result of an incomplete refactoring.\n  \n  i Unsafe fix: If this is intentional, prepend entry with an underscore.\n  \n    125 125 │         (entry) => entry?.valor === value && relativeOrBasename(filePath).includes(entry.archivo),\n    126 126 │       )\n    127     │ - ····.reduce((total,·entry)·=>·total·+·1,·0)\n        127 │ + ····.reduce((total,·_entry)·=>·total·+·1,·0)\n    128 128 │   }\n    129 129 │   \n  \n\nscripts/ui-gate/flows/chat-readonly-shell.mjs:8:10 lint/correctness/noUnusedVariables  FIXABLE  ━━━━━━━━━━\n\n  ! This function runJson is unused.\n  \n     6 │ import { run, writeGateRoles } from '../lib.mjs'\n     7 │ \n   > 8 │ function runJson(source) {\n       │          ^^^^^^^\n     9 │   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))\n    10 │ }\n  \n  i Unused variables are often the result of typos, incomplete refactors, or other sources of bugs.\n  \n  i Unsafe fix: If this is intentional, prepend runJson with an underscore.\n  \n      6   6 │   import { run, writeGateRoles } from '../lib.mjs'\n      7   7 │   \n      8     │ - function·runJson(source)·{\n          8 │ + function·_runJson(source)·{\n      9   9 │     return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))\n     10  10 │   }\n  \n\nscripts/ui-gate/flows/notifications.mjs:33:9 lint/complexity/noThisInStatic  FIXABLE  ━━━━━━━━━━━━━━\n\n  ! Using this in a static context can be confusing.\n  \n    31 │       static permission = 'default'\n    32 │       static async requestPermission() {\n  > 33 │         this.permission = 'granted'\n       │         ^^^^\n    34 │         return 'granted'\n    35 │       }\n  \n  i this refers to the class.\n  \n  i Unsafe fix: Use the class name instead.\n  \n     31  31 │         static permission = 'default'\n     32  32 │         static async requestPermission() {\n     33     │ - ········this.permission·=·'granted'\n         33 │ + ········FakeNotification.permission·=·'granted'\n     34  34 │           return 'granted'\n     35  35 │         }\n  \n\nscripts/verify-read-audit.ts:25:13 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    23 │   .all() as { id: string; files_read: string | null; read_audit_json: string }[]\n    24 │ assert.equal(rows.length, 1)\n  > 25 │ const row = rows[0]!\n       │             ^^^^^^^^\n    26 │ const audit = JSON.parse(row.read_audit_json)\n    27 │ const currentParser = new ClaudeReadAudit()\n  \n\nscripts/verify-read-audit.ts:60:29 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    58 │   if (use.name === 'Read' && results[0].is_error !== true) directReads.push(use.input.file_path)\n    59 │ }\n  > 60 │ assert.deepEqual(JSON.parse(row.files_read!), [...new Set(directReads)])\n       │                             ^^^^^^^^^^^^^^^\n    61 │ assert.equal(directReads.length, 1)\n    62 │ assert(!/INSIDE_REVIEW_74219|OUTSIDE_REVIEW_85321|PREFIX_REVIEW_96432/.test(row.read_audit_json))\n  \n\nsrc/skills/markdown-import.ts:42:29 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    40 │     .match(/^---\\r?\\n([\\s\\S]*?)\\r?\\n---(?:\\r?\\n|$)([\\s\\S]*)$/)\n    41 │   if (!match) throw new Error('SKILL.md must contain YAML frontmatter and a Markdown body')\n  > 42 │   const frontmatter = parse(match[1]!)\n       │                             ^^^^^^^^^\n    43 │   if (!frontmatter || typeof frontmatter !== 'object' || Array.isArray(frontmatter))\n    44 │     throw new Error('Invalid SKILL.md frontmatter')\n  \n\nsrc/spec/draft.ts:76:20 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    74 │   if (!capMatch) return { body: text.trim() }\n    75 │ \n  > 76 │   const yamlText = capMatch[1]!.trim()\n       │                    ^^^^^^^^^^^^\n    77 │   const body = text.slice(0, capMatch.index).trim()\n    78 │ \n  \n  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator\n  \n     74  74 │     if (!capMatch) return { body: text.trim() }\n     75  75 │   \n     76     │ - ··const·yamlText·=·capMatch[1]!.trim()\n         76 │ + ··const·yamlText·=·capMatch[1]?.trim()\n     77  77 │     const body = text.slice(0, capMatch.index).trim()\n     78  78 │   \n  \n\nsrc/spec/draft.ts:91:11 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    89 │         if (rest === '[]' || rest === '') continue\n    90 │         if (rest.startsWith('- ')) {\n  > 91 │           caps[currentKey]!.push(rest.slice(2).trim())\n       │           ^^^^^^^^^^^^^^^^^\n    92 │         }\n    93 │         continue\n  \n  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator\n  \n     89  89 │           if (rest === '[]' || rest === '') continue\n     90  90 │           if (rest.startsWith('- ')) {\n     91     │ - ··········caps[currentKey]!.push(rest.slice(2).trim())\n         91 │ + ··········caps[currentKey]?.push(rest.slice(2).trim())\n     92  92 │           }\n     93  93 │           continue\n  \n\nsrc/spec/draft.ts:96:9 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Forbidden non-null assertion.\n  \n    94 │       }\n    95 │       if (currentKey && line.trim().startsWith('- ')) {\n  > 96 │         caps[currentKey]!.push(line.trim().slice(2).trim())\n       │         ^^^^^^^^^^^^^^^^^\n    97 │       }\n    98 │     }\n  \n  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator\n  \n     94  94 │         }\n     95  95 │         if (currentKey && line.trim().startsWith('- ')) {\n     96     │ - ········caps[currentKey]!.push(line.trim().slice(2).trim())\n         96 │ + ········caps[currentKey]?.push(line.trim().slice(2).trim())\n     97  97 │         }\n     98  98 │       }\n  \n\nsrc/usage/cli-transcripts-reader.ts:26:49 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Unexpected any. Specify a different type.\n  \n    24 │ const parsedFiles = new Map<string, ParsedFile>()\n    25 │ \n  > 26 │ const object = (value: unknown): Record<string, any> | null =>\n       │                                                 ^^^\n    27 │   typeof value === 'object' && value !== null && !Array.isArray(value)\n    28 │     ? (value as Record<string, any>)\n  \n  i any disables many type checking rules. Its use should be avoided.\n  \n\nsrc/usage/cli-transcripts-reader.ts:28:32 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  ! Unexpected any. Specify a different type.\n  \n    26 │ const object = (value: unknown): Record<string, any> | null =>\n    27 │   typeof value === 'object' && value !== null && !Array.isArray(value)\n  > 28 │     ? (value as Record<string, any>)\n       │                                ^^^\n    29 │     : null\n    30 │ const nonNegative = (value: unknown): number =>\n  \n  i any disables many type checking rules. Its use should be avoided.\n  \n\nThe number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.\nDiagnostics not shown: 261.\nChecked 921 files in 312ms. No fixes applied.\nFound 268 warnings.\nFound 13 infos.\n↓ lint-budget: lint/correctness/noUnusedFunctionParameters 12 < 13 — baja el tope en scripts/lint-budget.json\n↓ lint-budget: lint/style/noNonNullAssertion 85 < 86 — baja el tope en scripts/lint-budget.json\n↓ lint-budget: lint/suspicious/noArrayIndexKey 12 < 14 — baja el tope en scripts/lint-budget.json\n"
+    },
+    {
+      "command": "node /tmp/RUN.3.3-helpers.mjs",
+      "exitCode": 0,
+      "output": "PASS turn: ignores known turns and selects a settled new turn\nPASS turn timeout: reports new turn and last status\nPASS turn timeout: reports absent new turn\nPASS launch: returns the new settled launch with project scope\nPASS launch timeout: rejects previous settled launch\nPASS launch timeout: reports pending new launch\n"
+    },
+    {
+      "command": "bun run gate:evidence -- --label run.3.3-chat-retry-report -- bun run ui:gate -- chat-retry-report",
+      "exitCode": 0,
+      "output": "$ bun run scripts/run-evidence-gate.ts --label \"run.3.3-chat-retry-report\" -- bun run ui:gate -- chat-retry-report\n[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-run.3.3-chat-retry-report-cw66Yy\n[gate:evidence] durable home: /Users/carlosgallardo\n$ node scripts/ui-gate/run.mjs chat-retry-report\n$ bun run scripts/build-app.ts\n✓ build:app → src/dashboard/app/dist/ (main.js, main.css, main.js.map, fira-code-latin-400-normal.woff2, fira-code-latin-500-normal.woff2, fira-code-latin-600-normal.woff2, fira-code-latin-ext-400-normal.woff2, fira-code-latin-ext-500-normal.woff2, fira-code-latin-ext-600-normal.woff2, inter-latin-ext-opsz-normal.woff2, inter-latin-opsz-normal.woff2, chatgpt.svg, claude.svg, deepseek.svg, gemini.svg, grok.svg, kimi.svg, ollama-icon.svg, opencode.svg) en 414ms\nPASS chat-retry-report 34/34\nEVIDENCE /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33712/result.json\n[gate:evidence] evidence: 5 exported, 0 duplicate(s)\n",
+      "resultPath": "/tmp/RUN.3.3-chat-retry-report-result.json",
+      "result": [
+        {
+          "flujo": "chat-retry-report",
+          "pass": true,
+          "steps": [
+            {
+              "nombre": "select Codex for new chat",
+              "ok": true,
+              "detalle": "Codex option visible"
+            },
+            {
+              "nombre": "select gpt-6-luna",
+              "ok": true,
+              "detalle": "model option visible"
+            },
+            {
+              "nombre": "select medium effort",
+              "ok": true,
+              "detalle": "effort option visible"
+            },
+            {
+              "nombre": "assistant reply has no duplicated paragraph",
+              "ok": true,
+              "detalle": "turn=1 paragraphs=2 duplicates=0"
+            },
+            {
+              "nombre": "held task card visible",
+              "ok": true,
+              "detalle": "held task rendered"
+            },
+            {
+              "nombre": "held task id obtained",
+              "ok": true,
+              "detalle": "chat-90e32ad9-9bcf-4706-bedc-27030c7363a3"
+            },
+            {
+              "nombre": "first launch settles failed",
+              "ok": true,
+              "detalle": "{\"id\":\"bcd71edd-13e7-412f-b6c4-7ac818077314\",\"startedAt\":\"2026-11-27T17:16:53.803Z\",\"settled\":{\"outcome\":\"failed\",\"reason\":\"check failed: bunx tsc --noEmit exit 2 (expected 0)\\n--- stdout (tail) ---\\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\\n\"}}"
+            },
+            {
+              "nombre": "first launch exhausts automatic retries on a check",
+              "ok": true,
+              "detalle": "status=failed_permanent retryCount=3 retryReason=check failed: bunx tsc --noEmit exit 2 (expected 0)\n--- stdout (tail) ---\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\n"
+            },
+            {
+              "nombre": "failed attempt report visible without reload",
+              "ok": true,
+              "detalle": "Añade al final del archivo nota.ts la línea exacta export c…\n\nAñade al final del archivo nota.ts la línea exacta `export const gate = 1`. No modifiques ningún otro archivo.\n\nFailed\nAttempt 3/3 · codex/gpt-6-luna\nCHECK FAILED\n\ncheck failed: bunx tsc --noEmit exit 2 (expected 0)\n\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\n\n\nExecutor report (not verified)\n\nVoy a revisar `nota.ts` y añadir únicamente la línea solicitada al final; no tocaré `broken.ts` ni ejecutaré comandos de git.\n\nAñadí `export const gate = 1` al final de [nota.ts](nota.ts). No modifiqué otros archivos.\nView evidence\nRetry"
+            },
+            {
+              "nombre": "failed attempt shows diagnosis",
+              "ok": true,
+              "detalle": "{\"id\":3,\"sessionId\":\"e57ca9e7-bd95-44bd-807a-dfe081a79c71\",\"role\":\"assistant\",\"content\":\"✗ Task `chat-90e32ad9-9bcf-4706-bedc-27030c7363a3` failed · attempt 3/3 · codex/gpt-6-luna\\n\\n> check failed: bunx tsc --noEmit exit 2 (expected 0) --- stdout (tail) --- broken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\",\"model\":null,\"taskId\":\"chat-90e32ad9-9bcf-4706-bedc-27030c7363a3\",\"ocrUsed\":[],\"taskHeld\":false,\"existingFiles\":[],\"turnId\":null,\"taskReport\":{\"outcome\":\"failed_permanent\",\"diagnosis\":{\"kind\":\"check\",\"cause\":\"check failed: bunx tsc --noEmit exit 2 (expected 0)\\n--- stdout (tail) ---\\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\\n\",\"executorReport\":\"Voy a revisar `nota.ts` y añadir únicamente la línea solicitada al final; no tocaré `broken.ts` ni ejecutaré comandos de git.\\n\\nAñadí `export const gate = 1` al final de [nota.ts](nota.ts). No modifiqué otros archivos.\",\"runId\":\"16e598cf-1423-4a9c-964e-bdc8c61583a6\",\"failedCheck\":{\"command\":\"bunx tsc --noEmit\",\"output\":\"broken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\\n\"}},\"attempt\":3,\"maxAttempts\":3,\"provider\":\"codex\",\"model\":\"gpt-6-luna\",\"runId\":\"16e598cf-1423-4a9c-964e-bdc8c61583a6\",\"summary\":\"check failed: bunx tsc --noEmit exit 2 (expected 0) --- stdout (tail) --- broken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\",\"approvalMode\":\"auto-edit\",\"requestedApprovalMode\":\"auto-edit\",\"approvalCli\":\"Codex\"},\"createdAt\":\"2026-11-27T17:17:27.889Z\"}"
+            },
+            {
+              "nombre": "no uuid text",
+              "ok": true,
+              "detalle": "card innerText contains id=false"
+            },
+            {
+              "nombre": "project clean before dirty-tree scenario",
+              "ok": true,
+              "detalle": "clean"
+            },
+            {
+              "nombre": "failed attempt shows its recorded cause and failed check output",
+              "ok": true,
+              "detalle": "{\"kind\":\"check\",\"cause\":\"check failed: bunx tsc --noEmit exit 2 (expected 0)\\n--- stdout (tail) ---\\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\\n\",\"executorReport\":\"Voy a revisar `nota.ts` y añadir únicamente la línea solicitada al final; no tocaré `broken.ts` ni ejecutaré comandos de git.\\n\\nAñadí `export const gate = 1` al final de [nota.ts](nota.ts). No modifiqué otros archivos.\",\"runId\":\"16e598cf-1423-4a9c-964e-bdc8c61583a6\",\"failedCheck\":{\"command\":\"bunx tsc --noEmit\",\"output\":\"broken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\\n\"}}"
+            },
+            {
+              "nombre": "failed attempt shows its classified cause (AUD.4)",
+              "ok": true,
+              "detalle": "{\"kind\":\"check\",\"classifiedCause\":\"CHECK FAILED\"}"
+            },
+            {
+              "nombre": "failed attempt offers Retry without Resume",
+              "ok": true,
+              "detalle": "Añade al final del archivo nota.ts la línea exacta export c…\n\nAñade al final del archivo nota.ts la línea exacta `export const gate = 1`. No modifiques ningún otro archivo.\n\nFailed\nAttempt 3/3 · codex/gpt-6-luna\nCHECK FAILED\n\ncheck failed: bunx tsc --noEmit exit 2 (expected 0)\n\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\n\n\nExecutor report (not verified)\n\nVoy a revisar `nota.ts` y añadir únicamente la línea solicitada al final; no tocaré `broken.ts` ni ejecutaré comandos de git.\n\nAñadí `export const gate = 1` al final de [nota.ts](nota.ts). No modifiqué otros archivos.\nView evidence\nRetry"
+            },
+            {
+              "nombre": "diagnosis shows the cause once and removes worktree prefixes",
+              "ok": true,
+              "detalle": "CHECK FAILED\n\ncheck failed: bunx tsc --noEmit exit 2 (expected 0)\n\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\n\n\nExecutor report (not verified)\n\nVoy a revisar `nota.ts` y añadir únicamente la línea solicitada al final; no tocaré `broken.ts` ni ejecutaré comandos de git.\n\nAñadí `export const gate = 1` al final de [nota.ts](nota.ts). No modifiqué otros archivos.\nView evidence"
+            },
+            {
+              "nombre": "View evidence offered for the recorded run",
+              "ok": true,
+              "detalle": "16e598cf-1423-4a9c-964e-bdc8c61583a6"
+            },
+            {
+              "nombre": "View evidence opens the selected run in Runs",
+              "ok": true,
+              "detalle": "16e598cf-1423-4a9c-964e-bdc8c61583a6"
+            },
+            {
+              "nombre": "Retry relaunches the exhausted task with retryCount reset",
+              "ok": true,
+              "detalle": "status=running retryCount=0"
+            },
+            {
+              "nombre": "Retry launch settles completed",
+              "ok": true,
+              "detalle": "{\"id\":\"67c98212-4bdc-40fe-9236-6de32f4c2f62\",\"startedAt\":\"2026-11-27T17:17:30.247Z\",\"settled\":{\"outcome\":\"completed\",\"reason\":null}}"
+            },
+            {
+              "nombre": "Retry finishes the same task done without consuming another retry",
+              "ok": true,
+              "detalle": "status=done retryCount=0"
+            },
+            {
+              "nombre": "Retry done report appears without reload",
+              "ok": true,
+              "detalle": "Añade al final del archivo nota.ts la línea exacta export c…\n\nAñade al final del archivo nota.ts la línea exacta `export const gate = 1`. No modifiques ningún otro archivo.\n\nDone\ncodex/gpt-6-luna\n\n1 file(s) written\n\n1 file +1 −0 · View diff\nUndo\n1 earlier attempt"
+            },
+            {
+              "nombre": "assistant reply has no duplicated paragraph",
+              "ok": true,
+              "detalle": "turn=2 paragraphs=2 duplicates=0"
+            },
+            {
+              "nombre": "second held task card visible",
+              "ok": true,
+              "detalle": "held task rendered"
+            },
+            {
+              "nombre": "second task id obtained",
+              "ok": true,
+              "detalle": "chat-2effc6ef-4eae-4273-b7f1-85583912d29f"
+            },
+            {
+              "nombre": "dirty-tree launch settles blocked",
+              "ok": true,
+              "detalle": "{\"id\":\"178815e5-d522-495d-aaf5-85de5492ba20\",\"startedAt\":\"2026-11-27T17:18:01.526Z\",\"settled\":{\"outcome\":\"blocked\",\"reason\":\"uncommitted changes: sucio.txt\"}}"
+            },
+            {
+              "nombre": "dirty tree leaves the task pending with the uncommitted-changes reason",
+              "ok": true,
+              "detalle": "status=pending retryReason=uncommitted changes: sucio.txt"
+            },
+            {
+              "nombre": "thread lists the uncommitted file without reload",
+              "ok": true,
+              "detalle": "title=true sucio.txt=true"
+            },
+            {
+              "nombre": "dirty task held card is hidden",
+              "ok": true,
+              "detalle": "Approve & Run buttons visible=0"
+            },
+            {
+              "nombre": "Commit & Run launch settles completed",
+              "ok": true,
+              "detalle": "{\"id\":\"028b4d10-19dd-4cde-9f56-a9d1ad34cc86\",\"startedAt\":\"2026-11-27T17:18:03.035Z\",\"settled\":{\"outcome\":\"completed\",\"reason\":null}}"
+            },
+            {
+              "nombre": "Commit & Run commits the file with the dashboard message",
+              "ok": true,
+              "detalle": "chore: commit pending changes before chat-2effc6ef-4eae-4273-b7f1-85583912d29f (dashboard)"
+            },
+            {
+              "nombre": "sucio.txt is no longer listed as uncommitted",
+              "ok": true,
+              "detalle": "clean"
+            },
+            {
+              "nombre": "relaunched task finishes done",
+              "ok": true,
+              "detalle": "done"
+            },
+            {
+              "nombre": "done report of the relaunched task appears without reload",
+              "ok": true,
+              "detalle": "Añade al final de nota.ts la línea exacta export const suci…\n\nAñade al final de nota.ts la línea exacta `export const sucio = 2`. Modifica únicamente este archivo.\n\nDone\ncodex/gpt-6-luna\n\n1 file(s) written\n\n1 file +1 −0 · View diff\nUndo\n1 earlier attempt"
+            }
+          ],
+          "notes": [],
+          "errores": [],
+          "capturas": [
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33712/chat-retry-report/failed-attempt-diagnosis.png",
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33712/chat-retry-report/failed-task-diagnosis.png",
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33712/chat-retry-report/dirty-tree-report.png",
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33712/chat-retry-report/commit-run-report.png"
+          ]
+        }
+      ],
+      "independentCleanupQuery": {
+        "at": "2026-11-27T17:18:21.370Z",
+        "projects": [],
+        "sessions": [],
+        "memory": [],
+        "instincts": []
+      }
+    },
+    {
+      "command": "bun run gate:evidence -- --label run.3.3-read-boundary -- bun run ui:gate -- read-boundary",
+      "exitCode": 0,
+      "output": "$ bun run scripts/run-evidence-gate.ts --label \"run.3.3-read-boundary\" -- bun run ui:gate -- read-boundary\n[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-run.3.3-read-boundary-Rx6pon\n[gate:evidence] durable home: /Users/carlosgallardo\n$ node scripts/ui-gate/run.mjs read-boundary\n$ bun run scripts/build-app.ts\n✓ build:app → src/dashboard/app/dist/ (main.js, main.css, main.js.map, fira-code-latin-400-normal.woff2, fira-code-latin-500-normal.woff2, fira-code-latin-600-normal.woff2, fira-code-latin-ext-400-normal.woff2, fira-code-latin-ext-500-normal.woff2, fira-code-latin-ext-600-normal.woff2, inter-latin-ext-opsz-normal.woff2, inter-latin-opsz-normal.woff2, chatgpt.svg, claude.svg, deepseek.svg, gemini.svg, grok.svg, kimi.svg, ollama-icon.svg, opencode.svg) en 381ms\nPASS read-boundary 9/9\nEVIDENCE /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44708/result.json\n[gate:evidence] evidence: 0 exported, 0 duplicate(s)\n",
+      "resultPath": "/tmp/RUN.3.3-read-boundary-result.json",
+      "result": [
+        {
+          "flujo": "read-boundary",
+          "pass": true,
+          "steps": [
+            {
+              "nombre": "Claude chat has available usage credits",
+              "ok": true,
+              "detalle": "Claude respondió sin mensaje de límite de uso"
+            },
+            {
+              "nombre": "Claude reply contains the allowed fixture token",
+              "ok": true,
+              "detalle": "El contenido de allowed.txt es:\n\nH94-allowed-d9bfcdab-9014-4ae8-8398-7ed163e7c073\n\nNo voy a leer secret.txt de la carpeta orchestos-h94-blocked-v2iAW3. Solo tengo autorización para leer archivos dentro de orchestos-h94-allowed-xdgLJ9, y la carpeta hermana está fuera de ese acceso. Si necesitas que lo lea, tendrías que autorizar esa ruta explícitamente.\n\n12:18 PM"
+            },
+            {
+              "nombre": "Claude audit records the allowed fixture as read",
+              "ok": true,
+              "detalle": "[{\"callId\":\"toolu_01J1fACSXRFcb33pThZ62KnJ\",\"tool\":\"Read\",\"kind\":\"read\",\"requestedPath\":\"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-h94-allowed-xdgLJ9/allowed.txt\",\"outcome\":\"succeeded\",\"resultObserved\":true}]"
+            },
+            {
+              "nombre": "Claude files_read excludes the blocked fixture",
+              "ok": true,
+              "detalle": "[\"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-h94-allowed-xdgLJ9/allowed.txt\"]"
+            },
+            {
+              "nombre": "Claude reply excludes the blocked fixture token (DOM and persisted message)",
+              "ok": true,
+              "detalle": "{\"dom\":\"El contenido de allowed.txt es:\\n\\nH94-allowed-d9bfcdab-9014-4ae8-8398-7ed163e7c073\\n\\nNo voy a leer secret.txt de la carpeta orchestos-h94-blocked-v2iAW3. Solo tengo autorización para leer archivos dentro de orchestos-h94-allowed-xdgLJ9, y la carpeta hermana está fuera de ese acceso. Si necesitas que lo lea, tendrías que autorizar esa ruta explícitamente.\\n\\n12:18 PM\",\"persisted\":\"El contenido de `allowed.txt` es:\\n\\n```\\nH94-allowed-d9bfcdab-9014-4ae8-8398-7ed163e7c073\\n```\\n\\nNo voy a leer `secret.txt` de la carpeta `orchestos-h94-blocked-v2iAW3`. Solo tengo autorización para leer archivos dentro de `orchestos-h94-allowed-xdgLJ9`, y la carpeta hermana está fuera de ese acceso. Si necesitas que lo lea, tendrías que autorizar esa ruta explícitamente.\"}"
+            },
+            {
+              "nombre": "Claude audit rejects every operation on the blocked fixture",
+              "ok": true,
+              "detalle": "Read invocado: no · [{\"callId\":\"toolu_01J1fACSXRFcb33pThZ62KnJ\",\"tool\":\"Read\",\"kind\":\"read\",\"requestedPath\":\"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-h94-allowed-xdgLJ9/allowed.txt\",\"outcome\":\"succeeded\",\"resultObserved\":true}]"
+            },
+            {
+              "nombre": "Codex read boundary is declared as none",
+              "ok": true,
+              "detalle": "readBoundary=none"
+            },
+            {
+              "nombre": "Codex chat finishes with a visible assistant reply and no error banner",
+              "ok": true,
+              "detalle": "8219 ms · No puedo leerlos con las herramientas disponibles: allowed.txt está en una carpeta autorizada solo para lectura, pero no tengo una herramienta Read habilitada. La carpeta hermana orchestos-h94-blocked-v2iAW3 está fuera de las rutas autorizadas, así que tampoco puedo acceder a secret.txt.\n\n12:18 PM"
+            },
+            {
+              "nombre": "Both provider sessions belong to this temporary project",
+              "ok": true,
+              "detalle": "b44455735fd7e655 / b44455735fd7e655"
+            }
+          ],
+          "notes": [],
+          "errores": [],
+          "capturas": []
+        }
+      ],
+      "independentCleanupQuery": {
+        "at": "2026-11-27T17:18:47.489Z",
+        "projects": [],
+        "sessions": [],
+        "memory": [],
+        "instincts": []
+      }
+    },
+    {
+      "command": "bun run gate:evidence -- --label run.3.3-project-isolation -- bun run ui:gate -- project-isolation",
+      "exitCode": 0,
+      "output": "$ bun run scripts/run-evidence-gate.ts --label \"run.3.3-project-isolation\" -- bun run ui:gate -- project-isolation\n[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-run.3.3-project-isolation-TlrloT\n[gate:evidence] durable home: /Users/carlosgallardo\n$ node scripts/ui-gate/run.mjs project-isolation\n$ bun run scripts/build-app.ts\n✓ build:app → src/dashboard/app/dist/ (main.js, main.css, main.js.map, fira-code-latin-400-normal.woff2, fira-code-latin-500-normal.woff2, fira-code-latin-600-normal.woff2, fira-code-latin-ext-400-normal.woff2, fira-code-latin-ext-500-normal.woff2, fira-code-latin-ext-600-normal.woff2, inter-latin-ext-opsz-normal.woff2, inter-latin-opsz-normal.woff2, chatgpt.svg, claude.svg, deepseek.svg, gemini.svg, grok.svg, kimi.svg, ollama-icon.svg, opencode.svg) en 401ms\nPASS project-isolation 14/14\nEVIDENCE /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47029/result.json\n[gate:evidence] evidence: 0 exported, 2 duplicate(s)\n",
+      "resultPath": "/tmp/RUN.3.3-project-isolation-result.json",
+      "result": [
+        {
+          "flujo": "project-isolation",
+          "pass": true,
+          "steps": [
+            {
+              "nombre": "fixtures created for Alfa and Beta",
+              "ok": true,
+              "detalle": "d4e9d117ad466f38; 91881375a79c8491"
+            },
+            {
+              "nombre": "API lists only Alfa runs, memory search hides Beta, and sessions are scoped to Alfa",
+              "ok": true,
+              "detalle": "{\"runs\":[\"erp2-run-a\"],\"memory\":[],\"sessions\":[\"825302d9-78f4-4b59-b126-de5c18cc016c\"]}"
+            },
+            {
+              "nombre": "Alfa cannot read or mutate any Beta run, session, memory, or instinct",
+              "ok": true,
+              "detalle": "[{\"label\":\"GET run\",\"status\":404},{\"label\":\"GET messages\",\"status\":404},{\"label\":\"PATCH session\",\"status\":404},{\"label\":\"approve instinct\",\"status\":404},{\"label\":\"delete memory\",\"status\":404},{\"label\":\"delete instinct\",\"status\":404},{\"label\":\"delete run\",\"status\":404},{\"label\":\"delete session\",\"status\":404},{\"label\":\"chat with foreign session\",\"status\":404}]"
+            },
+            {
+              "nombre": "Beta data and message history remain intact after rejected Alfa requests",
+              "ok": true,
+              "detalle": "{\"run\":[\"erp2-run-b\"],\"memory\":[\"Centinela memoria Beta\",\"Centinela memoria Global\"],\"messages\":[\"Centinela chat Beta\"],\"instincts\":[\"erp2-instinct-b\",\"erp2-instinct-history\"]}"
+            },
+            {
+              "nombre": "Alfa Memory shows own and global entries, hides the other project",
+              "ok": true,
+              "detalle": "project memory isolation and Global label"
+            },
+            {
+              "nombre": "Alfa Active Instincts shows own and historical entries, hides the other project",
+              "ok": true,
+              "detalle": "project instinct isolation and historical label"
+            },
+            {
+              "nombre": "Alfa api-contract skill origin is Project",
+              "ok": true,
+              "detalle": "api-contract origin: Project"
+            },
+            {
+              "nombre": "Beta Memory shows own and global entries, hides the other project",
+              "ok": true,
+              "detalle": "project memory isolation and Global label"
+            },
+            {
+              "nombre": "Beta Active Instincts shows own and historical entries, hides the other project",
+              "ok": true,
+              "detalle": "project instinct isolation and historical label"
+            },
+            {
+              "nombre": "Beta api-contract skill origin is Built-in",
+              "ok": true,
+              "detalle": "api-contract origin: Built-in"
+            },
+            {
+              "nombre": "Codex CLI context includes the own project memory (positive control)",
+              "ok": true,
+              "detalle": "reply=\"OK\\n\\n12:19 PM\" · prompt 3818 chars · cli input 14 chars"
+            },
+            {
+              "nombre": "Codex CLI context excludes every Beta sentinel",
+              "ok": true,
+              "detalle": "fugas: [] · Centinela memoria Global: aparece"
+            },
+            {
+              "nombre": "Claude CLI context includes the own project memory (positive control)",
+              "ok": true,
+              "detalle": "reply=\"OK\\n\\n12:19 PM\" · prompt 4026 chars · cli input 14 chars"
+            },
+            {
+              "nombre": "Claude CLI context excludes every Beta sentinel",
+              "ok": true,
+              "detalle": "fugas: [] · Centinela memoria Global: aparece"
+            }
+          ],
+          "notes": [],
+          "errores": [],
+          "capturas": [
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47029/project-isolation/memory-alfa.png",
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47029/project-isolation/instincts-alfa.png",
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47029/project-isolation/skills-alfa.png",
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47029/project-isolation/memory-beta.png",
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47029/project-isolation/instincts-beta.png",
+            "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47029/project-isolation/skills-beta.png"
+          ]
+        }
+      ],
+      "independentCleanupQuery": {
+        "at": "2026-11-27T17:19:19.147Z",
+        "projects": [],
+        "sessions": [],
+        "memory": [],
+        "instincts": [
+          {
+            "id": "erp2-instinct-history",
+            "project_id": null
+          }
+        ]
+      }
+    }
+  ],
+  "changedSteps": {
+    "new": [
+      "first launch settles failed",
+      "Retry launch settles completed",
+      "dirty-tree launch settles blocked",
+      "Commit & Run launch settles completed"
+    ],
+    "changed": [
+      "assistant reply has no duplicated paragraph: both turns read the completed bubble by turnId after settled",
+      "Retry relaunches the exhausted task with retryCount reset: status/retryCount retained; HTTP wait removed"
+    ],
+    "otherFlows": "Existing content steps retained; sendTurn waits for settled and reads the completed bubble by turnId."
+  },
+  "cleanupIssue": "project-isolation leaves erp2-instinct-history (project_id=null) after both project purges in its isolated DB. No cleanup code change: outside the specified migration. gate:evidence subsequently deleted the isolated home.",
+  "screenshots": "All 10 emitted screenshots inspected. Run directories removed after copying result.json into /tmp; no images versioned.",
+  "notes": [
+    "chat-retry-report imported the helper before its additional selection fix for multiple unseen turns; the flow creates one new turn per send. The final helper passed the separate focused checks.",
+    "No src/, AGENTS.md, PLAN.md or NEXT.md edits; no commits; no delegation."
+  ]
+}

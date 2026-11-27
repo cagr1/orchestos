@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
-import { run, writeGateRoles } from '../lib.mjs'
+import { run, waitLaunchSettled, waitTurnSettled, writeGateRoles } from '../lib.mjs'
 
 async function tasksFor(api, projectId) {
   const response = await api('/api/tasks', {
@@ -127,8 +127,11 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   const session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
   if (!session) throw new Error('temporary chat session was not found')
   await page.locator(`[data-session-tab="${session.id}"][aria-selected="true"]`).waitFor()
-  async function checkAssistantParagraphs(turn) {
-    const bubble = page.locator('div.prose').last()
+  async function checkAssistantParagraphs(turn, { turnId, settled }) {
+    if (settled.outcome !== 'completed')
+      throw new Error(`Chat turn ${turnId} ${settled.outcome}: ${settled.reason}`)
+    const bubble = page.locator(`[data-turn-id="${turnId}"][data-settled="completed"]`)
+    await bubble.waitFor({ state: 'visible', timeout: 30_000 })
     const text = await bubble.innerText()
     const paragraphs = text
       .split(/\n\s*\n/)
@@ -171,15 +174,16 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   const heldPrompt =
     'Modifica nota.ts para añadir al final la línea "export const gate = 1". La única ruta de salida es nota.ts.'
   const beforeIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
-  const firstTurn = page.waitForResponse(
-    (response) => response.request().method() === 'POST' && /\/api\/chat$/.test(response.url()),
-    { timeout: 180_000 },
-  )
-  firstTurn.catch(() => {})
+  const firstTimeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+    headers: { 'x-orchestos-project-id': project.id },
+  })
+  if (firstTimeline.status !== 200)
+    throw new Error(`Chat timeline returned HTTP ${firstTimeline.status}`)
+  const firstTurnIds = new Set(firstTimeline.data.turns.map((turn) => turn.id))
   await composer.fill(heldPrompt)
   await page.locator('button[aria-label="Send message"]:visible').click()
-  await (await firstTurn).finished()
-  await checkAssistantParagraphs(1)
+  const firstTurn = await waitTurnSettled(api, project.id, session.id, firstTurnIds, 180_000)
+  await checkAssistantParagraphs(1, firstTurn)
   const taskCard = page.locator('[data-task-state="held"]').first()
   const heldCardVisible = await visible(taskCard, 180_000)
   await step('held task card visible', heldCardVisible, 'held task rendered')
@@ -190,7 +194,21 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   const taskId = task?.id
   await step('held task id obtained', Boolean(taskId), taskId || 'task id unavailable')
   if (!taskId) return
+  const previousLaunchId = (await tasksFor(api, project.id)).find((item) => item.id === taskId)
+    ?.launch?.id
   await page.getByRole('button', { name: /^Approve & Run$/i }).click()
+  const exhaustedLaunch = await waitLaunchSettled(
+    api,
+    project.id,
+    taskId,
+    previousLaunchId,
+    5 * 60_000,
+  )
+  await step(
+    'first launch settles failed',
+    exhaustedLaunch.settled.outcome === 'failed',
+    JSON.stringify(exhaustedLaunch),
+  )
   const exhaustedTask = await waitForTask(
     api,
     project.id,
@@ -324,14 +342,9 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   )
   await page.getByRole('button', { name: 'Back to app', exact: true }).click()
 
-  const retryResponse = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' &&
-      new URL(response.url()).pathname === `/api/tasks/${encodeURIComponent(taskId)}/run`,
-  )
+  const previousRetryLaunchId = (await tasksFor(api, project.id)).find((item) => item.id === taskId)
+    ?.launch?.id
   await failedReport.getByRole('button', { name: 'Retry', exact: true }).click()
-  const retryLaunch = await retryResponse
-  await retryLaunch.finished()
   const restartedTask = await waitForTask(
     api,
     project.id,
@@ -341,10 +354,20 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   )
   await step(
     'Retry relaunches the exhausted task with retryCount reset',
-    retryLaunch.ok() &&
-      ['pending', 'running'].includes(restartedTask?.status) &&
-      restartedTask?.retryCount === 0,
-    `http=${retryLaunch.status()} status=${restartedTask?.status ?? 'missing'} retryCount=${restartedTask?.retryCount ?? 'missing'}`,
+    ['pending', 'running'].includes(restartedTask?.status) && restartedTask?.retryCount === 0,
+    `status=${restartedTask?.status ?? 'missing'} retryCount=${restartedTask?.retryCount ?? 'missing'}`,
+  )
+  const retryLaunch = await waitLaunchSettled(
+    api,
+    project.id,
+    taskId,
+    previousRetryLaunchId,
+    10 * 60_000,
+  )
+  await step(
+    'Retry launch settles completed',
+    retryLaunch.settled.outcome === 'completed',
+    JSON.stringify(retryLaunch),
   )
   const retriedTask = await waitForTask(
     api,
@@ -369,16 +392,21 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   // Tramo 2 — árbol sucio: la tarea queda pending y el hilo ofrece "Commit & Run".
   writeFileSync(join(projectRoot, 'sucio.txt'), 'sin commitear\n')
   const knownIds = new Set((await tasksFor(api, project.id)).map((item) => item.id))
-  const secondTurn = page.waitForResponse(
-    (response) => response.request().method() === 'POST' && /\/api\/chat$/.test(response.url()),
-    { timeout: 180_000 },
+  const secondTimeline = await api(
+    `/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`,
+    {
+      headers: { 'x-orchestos-project-id': project.id },
+    },
   )
+  if (secondTimeline.status !== 200)
+    throw new Error(`Chat timeline returned HTTP ${secondTimeline.status}`)
+  const secondTurnIds = new Set(secondTimeline.data.turns.map((turn) => turn.id))
   await composer.fill(
     'Modifica nota.ts para añadir al final la línea "export const sucio = 2". La única ruta de salida es nota.ts.',
   )
   await page.locator('button[aria-label="Send message"]:visible').click()
-  await (await secondTurn).finished()
-  await checkAssistantParagraphs(2)
+  const secondTurn = await waitTurnSettled(api, project.id, session.id, secondTurnIds, 180_000)
+  await checkAssistantParagraphs(2, secondTurn)
   const secondCard = page.locator('[data-task-state="held"]').last()
   const secondCardVisible = await visible(secondCard, 180_000)
   await step('second held task card visible', secondCardVisible, 'held task rendered')
@@ -388,7 +416,22 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   )
   await step('second task id obtained', Boolean(dirtyTask), dirtyTask?.id ?? 'task id unavailable')
   if (!dirtyTask) return
+  const previousDirtyLaunchId = (await tasksFor(api, project.id)).find(
+    (item) => item.id === dirtyTask.id,
+  )?.launch?.id
   await page.getByRole('button', { name: /^Approve & Run$/i }).click()
+  const blockedLaunch = await waitLaunchSettled(
+    api,
+    project.id,
+    dirtyTask.id,
+    previousDirtyLaunchId,
+    2 * 60_000,
+  )
+  await step(
+    'dirty-tree launch settles blocked',
+    blockedLaunch.settled.outcome === 'blocked',
+    JSON.stringify(blockedLaunch),
+  )
   const blocked = await waitForTask(
     api,
     project.id,
@@ -425,7 +468,22 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     await step('Commit & Run button visible', false, 'button missing')
     return
   }
+  const previousCommitLaunchId = (await tasksFor(api, project.id)).find(
+    (item) => item.id === dirtyTask.id,
+  )?.launch?.id
   await commitRun.click()
+  const committedLaunch = await waitLaunchSettled(
+    api,
+    project.id,
+    dirtyTask.id,
+    previousCommitLaunchId,
+    10 * 60_000,
+  )
+  await step(
+    'Commit & Run launch settles completed',
+    committedLaunch.settled.outcome === 'completed',
+    JSON.stringify(committedLaunch),
+  )
   const finished = await waitForTask(
     api,
     project.id,

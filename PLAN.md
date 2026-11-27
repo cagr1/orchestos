@@ -409,8 +409,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador Chromium (Playwright) contra el dashboard real: launchId en /run y settled blocked en
   /api/tasks/launches/:id — `docs/done/evidence/RUN.3.2-live.json`
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/RUN.3.2.md
-- [ ] **RUN.3.3 — Migrar `chat-retry-report`, `read-boundary`, `project-isolation` a `settled`.** (GO de Carlos
+- [x] **RUN.3.3 — Migrar `chat-retry-report`, `read-boundary`, `project-isolation` a `settled`.** (GO de Carlos
   2026-11-27) Esperan el `settled` del turno/lanzamiento, no el POST ni la prosa visible. Va después de RUN.3.2.
+  Hecho: `waitTurnSettled` y `waitLaunchSettled` en `scripts/ui-gate/lib.mjs`; los tres flujos leen la respuesta
+  por `[data-turn-id][data-settled="completed"]` y aseguran el `outcome` de cada lanzamiento (`failed` al agotar,
+  `completed`, `blocked` con árbol sucio). Corridas únicas: `chat-retry-report` 34/34, `read-boundary` 9/9,
+  `project-isolation` 14/14. Fix del cerebro: `project-isolation` dejaba `erp2-instinct-history` (sin proyecto, el
+  purge no lo borra); su cleanup lo borra y el flujo volvió a pasar 14/14. Regla de fin de turno en `AGENTS.md`.
+  Gate en vivo: navegador (Playwright) con ui:gate de los tres flujos vía gate:evidence
+  — `docs/done/evidence/RUN.3.3-live.json`
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/RUN.3.3.md
 - [ ] **RUN.3.4 — Migrar el resto de flujos a `settled`.** (GO de Carlos 2026-11-27) Los que aceptan cambio de
   intento (`auto-flow`, `runs-graph`, `custom-cli`, `restart-mid-run`) y los de prosa/inactividad agregada
   (lista en el diagnóstico § 3). Va después de RUN.3.3.

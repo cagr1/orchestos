@@ -288,7 +288,7 @@
       "sprint": "Etapa 2 — Uso real",
       "block": null,
       "title": "Migrar `chat-retry-report`, `read-boundary`, `project-isolation` a `settled`",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 
 const GATE_ROLES = ['orchestrator', 'executor', 'reviewer', 'auxiliary']
@@ -85,4 +86,44 @@ export function run(command, args, cwd) {
       `${command} ${args.join(' ')} failed (exit ${error.status ?? 'n/a'}): ${detail || 'sin salida'}`,
     )
   }
+}
+
+export async function waitTurnSettled(api, projectId, sessionId, knownTurnIds, timeout) {
+  const deadline = Date.now() + timeout
+  let turn
+  do {
+    const response = await api(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`, {
+      headers: { 'x-orchestos-project-id': projectId },
+    })
+    if (response.status !== 200) throw new Error(`Chat timeline returned HTTP ${response.status}`)
+    const newTurns = response.data?.turns?.filter((item) => !knownTurnIds.has(item.id)) ?? []
+    turn = newTurns.find((item) => item.settled != null) ?? newTurns.at(-1)
+    if (turn?.settled != null) return { turnId: turn.id, settled: turn.settled }
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) break
+    await delay(Math.min(1_000, remaining))
+  } while (Date.now() <= deadline)
+  throw new Error(
+    `Timed out waiting for chat turn to settle: newTurn=${Boolean(turn)} turnId=${turn?.id ?? 'none'} status=${turn?.status ?? 'missing'}`,
+  )
+}
+
+export async function waitLaunchSettled(api, projectId, taskId, previousLaunchId, timeout) {
+  const deadline = Date.now() + timeout
+  let task
+  do {
+    const response = await api('/api/tasks', {
+      headers: { 'x-orchestos-project-id': projectId },
+    })
+    if (response.status !== 200) throw new Error(`Task list returned HTTP ${response.status}`)
+    task = response.data?.tasks?.find((item) => item.id === taskId)
+    if (task?.launch && task.launch.id !== previousLaunchId && task.launch.settled != null)
+      return task.launch
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) break
+    await delay(Math.min(1_000, remaining))
+  } while (Date.now() <= deadline)
+  throw new Error(
+    `Timed out waiting for task launch to settle: newLaunch=${Boolean(task?.launch && task.launch.id !== previousLaunchId)} launchId=${task?.launch?.id ?? 'none'} status=${task?.status ?? 'missing'} settled=${JSON.stringify(task?.launch?.settled ?? null)}`,
+  )
 }

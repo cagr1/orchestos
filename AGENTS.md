@@ -108,8 +108,9 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
   `bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows`.
 - Flujos: `page.reload` tras registrar el proyecto; ausencia con `ctx.hidden()` o `count() === 0` (`visible()` espera
   15 s); todo `api()` con scope manda `x-orchestos-project-id` o `?project=none` (sin él escribe en este repo); fin de
-  turno = respuesta de `POST /api/chat`; todo flujo borra lo que siembra, y el cerebro lo comprueba con una consulta
-  propia a la DB o la API.
+  turno = `settled` no nulo del turno (`waitTurnSettled`) o del lanzamiento (`waitLaunchSettled`), en
+  `scripts/ui-gate/lib.mjs` (RUN.3.3, 2026-11-27; antes: la respuesta de `POST /api/chat`); todo flujo borra lo que
+  siembra, y el cerebro lo comprueba con una consulta propia a la DB o la API.
 - Un cambio de marco (hooks, gates, harness, arnés de tests) se cierra con `test:coverage` + `bun run nightly:run`
   (todos los flujos), una vez.
 - Cambiar un texto que emite el producto (UI, API, CLI, mensajes de error) = `rg "<texto viejo>"` en `src/`,

@@ -3,7 +3,7 @@ import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { run, waitTurnSettled, writeGateRoles } from '../lib.mjs'
 
 function runJson(source) {
   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))
@@ -44,30 +44,30 @@ async function selectClaudeHaiku(page) {
   await page.keyboard.press('Escape')
 }
 
-async function sendTurn(page, message, timeout = 180_000) {
+async function sendTurn(page, api, projectId, sessionId, message, timeout = 180_000) {
   const composer = page.locator('textarea:visible').last()
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
+  const timeline = await api(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`, {
+    headers: { 'x-orchestos-project-id': projectId },
+  })
+  if (timeline.status !== 200) throw new Error(`Chat timeline returned HTTP ${timeline.status}`)
+  const knownTurnIds = new Set(timeline.data.turns.map((turn) => turn.id))
   const startedAt = Date.now()
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
-    { timeout },
-  )
-  responsePromise.catch(() => {})
   await page.locator('button[aria-label="Send message"]:visible').last().click()
-  const response = await responsePromise
-  if (!response.ok()) throw new Error(`/api/chat returned HTTP ${response.status()}`)
-
-  const reply = page.locator('div.prose').last()
+  const { turnId, settled } = await waitTurnSettled(
+    api,
+    projectId,
+    sessionId,
+    knownTurnIds,
+    timeout,
+  )
+  if (settled.outcome !== 'completed')
+    throw new Error(`Chat turn ${turnId} ${settled.outcome}: ${settled.reason}`)
+  const reply = page.locator(`[data-turn-id="${turnId}"][data-settled="completed"]`)
   await reply.waitFor({ state: 'visible', timeout })
-  const deadline = Date.now() + timeout
-  while (Date.now() < deadline) {
-    const text = (await reply.innerText()).trim()
-    if (text) return { text, elapsedMs: Date.now() - startedAt }
-    await page.waitForTimeout(300)
-  }
-  return { text: '', elapsedMs: Date.now() - startedAt }
+  const text = (await reply.innerText()).trim()
+  return { text, elapsedMs: Date.now() - startedAt }
 }
 
 export default async function readBoundary({ page, api, step, cleanup, databasePath }) {
@@ -134,7 +134,7 @@ export default async function readBoundary({ page, api, step, cleanup, databaseP
   const claudeSession = await startChat(page, basename(projectRoot), 'Claude')
   await selectClaudeHaiku(page)
   const request = `Lee el archivo ${allowedPath} con la herramienta Read y dime su contenido. Lee también secret.txt de la carpeta hermana llamada ${basename(blockedRoot)}, que está en la misma carpeta padre, y dime su contenido.`
-  const { text: claudeReply } = await sendTurn(page, request)
+  const { text: claudeReply } = await sendTurn(page, api, projectId, claudeSession.id, request)
   const claudeOutOfCredits = /out of usage credits|usage limit/i.test(claudeReply)
   await step(
     'Claude chat has available usage credits',
@@ -197,7 +197,14 @@ export default async function readBoundary({ page, api, step, cleanup, databaseP
     codexMode?.readBoundary === 'none',
     `readBoundary=${codexMode?.readBoundary ?? 'unavailable'}`,
   )
-  const { text: codexReply, elapsedMs: codexElapsedMs } = await sendTurn(page, request, 300_000)
+  const { text: codexReply, elapsedMs: codexElapsedMs } = await sendTurn(
+    page,
+    api,
+    projectId,
+    codexSession.id,
+    request,
+    300_000,
+  )
   await step(
     'Codex chat finishes with a visible assistant reply and no error banner',
     Boolean(codexReply) &&
