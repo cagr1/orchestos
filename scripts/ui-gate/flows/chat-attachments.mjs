@@ -85,6 +85,7 @@ export default async function chatAttachments({ page, api, step, shot, visible, 
   const session = await (await startResponse).json()
   if (session.agent !== 'codex')
     throw new Error(`Expected Codex session, received ${session.agent}`)
+  await page.locator(`[data-session-tab="${session.id}"][aria-selected="true"]`).waitFor()
 
   const uploads = []
   const chatBodies = []

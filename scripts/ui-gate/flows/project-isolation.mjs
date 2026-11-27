@@ -32,6 +32,8 @@ async function startChat(page, projectName, agent) {
   const session = await response.json()
   if (session.agent !== agent.toLowerCase())
     throw new Error(`Expected ${agent} session, received ${session.agent}`)
+  // USO.41: el compositor pasa de `new:<proyecto>` a la sesión; escribir antes pierde el texto.
+  await page.locator(`[data-session-tab="${session.id}"][aria-selected="true"]`).waitFor()
   return session
 }
 

@@ -185,6 +185,7 @@ export default async function chatTurnDetails({
   const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
   const session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
   if (!session) throw new Error('temporary chat session was not found')
+  await page.locator(`[data-session-tab="${session.id}"][aria-selected="true"]`).waitFor()
   const initialToolPrompt =
     'Usa tu herramienta de shell para correr `ls` en la raíz del proyecto; no respondas sin ejecutarlo.'
   let toolExecution = null

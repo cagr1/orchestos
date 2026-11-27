@@ -149,7 +149,7 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   const reloadChat = async () => {
     await page.reload({ waitUntil: 'domcontentloaded' })
     await page.getByRole('button', { name: 'Chat', exact: true }).waitFor()
-    await page.locator('[data-thread-id]').first().waitFor()
+    // Desde USO.10 el Chat no lista sesiones de proyecto: ya no se espera `[data-thread-id]` (USO.41).
     await step('reload starts in Chat', (await tabs.count()) === 0, 'Dev tabs absent after reload')
   }
   await reloadChat()
@@ -163,7 +163,13 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   )
   await step(
     'running session tab shows the accent spinner',
-    (await tab(0).locator('[aria-label="Running"]').count()) === 1,
+    await tab(0)
+      .locator('[aria-label="Running"]')
+      .waitFor({ timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
     'Alpha spinner is visible while its session is running',
   )
   fixtureRunning = false

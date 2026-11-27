@@ -80,6 +80,7 @@ async function startChat(page, agent, projectName) {
   const session = await response.json()
   if (session.agent !== agent.toLowerCase())
     throw new Error(`Expected ${agent} session, received ${session.agent}`)
+  await page.locator(`[data-session-tab="${session.id}"][aria-selected="true"]`).waitFor()
   return session
 }
 

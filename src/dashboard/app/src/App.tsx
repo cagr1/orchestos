@@ -1366,6 +1366,8 @@ export default function App() {
     pendingDevAgent.current = pending
     void creating
       .then(async (thread) => {
+        // USO.41: el agente debe estar en projects antes de activar la pestaña.
+        const nextProjects = await listProjects()
         if (firstMessage) queueDevSessionMessage(thread.id, firstMessage, cliId, model, effort)
         // Lo escrito en la pestaña nueva mientras se lanzaba el agente pasa a su sesión (USO.12).
         if (launchedFromNewTab) {
@@ -1381,7 +1383,7 @@ export default function App() {
         threadsRef.current = [...threadsRef.current.filter((item) => item.id !== thread.id), thread]
         setThreads((current) => [...current.filter((item) => item.id !== thread.id), thread])
         setActiveThreadId(thread.id)
-        setProjects(await listProjects())
+        setProjects(nextProjects)
         setMode('dev')
       })
       .catch((error) => setProjectTabsError(error instanceof Error ? error.message : String(error)))
@@ -1503,6 +1505,7 @@ export default function App() {
           pendingThread ??
           (await createSession({ ...(agent ? { agent } : {}), projectId: currentProject.id }))
         thread = resolvedThread
+        const nextProjects = await listProjects()
         threadsRef.current = [
           resolvedThread,
           ...threadsRef.current.filter((item) => item.id !== resolvedThread.id),
@@ -1521,7 +1524,7 @@ export default function App() {
           'orchestos-last-dev',
           JSON.stringify({ projectId: currentProject.id, sessionId: thread.id }),
         )
-        setProjects(await listProjects())
+        setProjects(nextProjects)
       }
       if (!thread) return false
       return await handleSendMessage(

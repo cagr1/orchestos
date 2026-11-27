@@ -327,7 +327,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador Playwright, `chat-answer-actions` — `docs/done/evidence/USO.45-live.json`
   (arrastre título → lista en Chat y Dev; antes del fix Dev seleccionaba `""`).
   Ejecutado por: gpt-6-luna (mecanico) + gpt-6.1-sol (criterio, test) · Spec: docs/specs/USO.45.md
-- [ ] **USO.41 — `ui:gate dev-session-tabs` y `project-isolation` rojos en `HEAD`.** (visto en USO.40, 2026-11-23)
+- [x] **USO.41 — `ui:gate dev-session-tabs` y `project-isolation` rojos en `HEAD`.** (visto en USO.40, 2026-11-23)
   Ambos fallan en cb5620de sin cambios: `dev-session-tabs` espera `[data-thread-id]` en Chat (`reloadChat`,
   `flows/dev-session-tabs.mjs:149-153`) y desde USO.10 el Chat no lista sesiones de proyecto; `project-isolation`
   muere con `page.waitForResponse: Target page … closed`. Las nocturnas están en pausa (CI.85), por eso nadie lo vio.
@@ -335,6 +335,14 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   visible. Nuevo síntoma en `read-boundary`: en la pestaña nueva de Codex el compositor visible queda vacío tras
   `fill` y Send sigue disabled (`ui-gate-81922/read-boundary/failure.png`) — ¿borrador que se resetea al crear la
   sesión (`composer-drafts.ts`, USO.48)? Diagnosticar si es producto antes de tocar el flujo.
+  Hecho: era producto. Al lanzar una sesión, `App.tsx` activaba la pestaña antes de `listProjects()`; en ese hueco
+  `activeAgent` era null y el compositor escribía en `new:<proyecto>`, y lo escrito se perdía. Ahora la lista llega
+  antes de activar la pestaña (`handleCreateAgentInProject` y `handleDevSendMessage`). Gates: esperan la pestaña
+  activa antes de escribir (8 flujos; los que no tienen el id de sesión quedan para la nocturna);
+  `dev-session-tabs` ya no espera `[data-thread-id]` en Chat y espera el spinner por sondeo. Sin test unitario: no
+  hay arnés de `App.tsx`. Revisión `qa`: sin defectos.
+  Gate en vivo: navegador Playwright, `read-boundary` 9/9, `project-isolation` 14/14, `dev-session-tabs` 50/50 — `docs/done/evidence/USO.41-live.json`
+  Ejecutado por: gpt-6.1-sol (criterio) + gpt-6-luna (mecanico) · Spec: docs/specs/USO.41.md
 - [x] **CI.86 — Reanudar las nocturnas de ui-gates.** (GO de Carlos 2026-11-27, análisis de pi.dev) USO.49 rompió
   `qa-negative` y nadie lo vio: la pausa de CI.85 dejó sin red los cambios de comportamiento. Alcance: `paused:
   false`, `bun run nightly:install`, regla de la mañana vigente otra vez con triage (gate desfasado → se arregla el

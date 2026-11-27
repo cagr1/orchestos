@@ -710,6 +710,7 @@ export default async function shellLook({
     .first()
     .click()
   const devSession = await (await sessionResponse).json()
+  await page.locator(`[data-session-tab="${devSession.id}"][aria-selected="true"]`).waitFor()
   await api(`/api/chat/sessions/${devSession.id}`, {
     method: 'PATCH',
     headers: configHeaders,

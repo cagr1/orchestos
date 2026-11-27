@@ -126,6 +126,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
   const session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
   if (!session) throw new Error('temporary chat session was not found')
+  await page.locator(`[data-session-tab="${session.id}"][aria-selected="true"]`).waitFor()
   async function checkAssistantParagraphs(turn) {
     const bubble = page.locator('div.prose').last()
     const text = await bubble.innerText()

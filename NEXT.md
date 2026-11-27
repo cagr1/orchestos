@@ -22,8 +22,8 @@ Siguiente, en orden (GO de Carlos a A→B→C del análisis de pi.dev; B y C esp
    lanzamiento; `pending` hoy también significa "terminó sin éxito" (`src/cli.ts:1356`); `/turn-status` trata
    `cancelled` como `pending`. Migrar primero `chat-retry-report`, `read-boundary`, `project-isolation`.
    **Esperando GO de Carlos.**
-4. **USO.41** — ahora incluye: en la pestaña nueva de Codex el compositor visible queda vacío tras `fill` (¿borrador
-   reseteado al crear la sesión, `composer-drafts.ts`?). Diagnosticar si es producto.
+4. ~~USO.41~~ cerrado: era producto (pestaña activa antes de `listProjects()` → lo escrito al lanzar se perdía).
+   Los 8 flujos de lanzamiento sin id de sesión a mano (`auto-flow`, `chat-settings`, …) se ven en la nocturna.
 
 Trampas: el hook `brain-no-code` niega al cerebro Bash/Write en `src/` y `scripts/` (incluso un JSON) pero permite
 `Edit` ≤20 líneas: usar `Edit` para fixes chicos. Cerrar ítem: `plan:reconcile` tras editar PLAN; para cambiar texto

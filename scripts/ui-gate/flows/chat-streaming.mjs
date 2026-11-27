@@ -811,6 +811,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   const devSession = await devSessionResponse.json()
   if (devSession.agent !== 'claude')
     throw new Error(`Expected Claude Dev session, received ${devSession.agent}`)
+  await page.locator(`[data-session-tab="${devSession.id}"][aria-selected="true"]`).waitFor()
   await selectHaiku(page, visible)
   const devComposer = page.locator('textarea:visible').last()
   const devStart = await sendTurn(
