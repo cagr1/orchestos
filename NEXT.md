@@ -4,24 +4,37 @@ Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
 Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
-## Sesión 2026-11-25 — empezar por aquí
+## Sesión 2026-11-27 — empezar por aquí
 
-Lote acordado con Carlos (GO): calibrar controles para que guíen, no bloqueen. USO.49 (reintento), USO.50 (QA
-"no verificado"), USO.51 (carpetas de solo lectura). Datos que lo respaldan: de 13 runs de tareas en proyectos
-reales, 6 rechazos y solo 1 error real (tsc); 2 revirtieron trabajo bueno por un archivo generado faltante.
+Cerrado/subido: USO.49 `a0efbcd5` (reintento automático + Retry), USO.50 `f4e25dcb` (QA acepta "no verificado" con
+motivo; `qa-negative` adaptado al reintento), USO.51 `1b804e03` (el chat lee una ruta que Carlos escribe, solo
+lectura; runner de ui:gate ya no pierde el error por espera huérfana; 28 flujos usan el compositor visible), CI.86
+`08dcd1ad` (nocturnas de ui-gates otra vez a las 01:30; mutación en pausa hasta MUT.1). Worktree de Orca `numbfish`
+y ramas locales `cagr1/research-agro-demo`, `cagr1/fix-dashboard-ui-bugs` borradas (aporte integrado en `a705c09b`).
 
-- **USO.49** cerrado (gate en vivo 30/30, `docs/done/evidence/USO.49-live.json`). Intermitente sin causa: una
-  corrida de `chat-retry-report` cayó en Commit & Run con `SQLiteError: disk I/O error` (`SQLITE_IOERR_VNODE`,
-  `run-steps.ts:40`) y tumbó el dashboard; la siguiente pasó. Si reaparece, diagnosticar qué cambia `db.sqlite` bajo
-  el handle abierto.
-- **USO.50** cerrado (`qa-negative` 26/26 tras adaptarlo al reintento automático de USO.49).
-- **USO.51** cerrado (Claude lee la ruta nombrada; Codex sin verificar en vivo → USO.41). CI.86 cerrado (nocturnas de ui-gates a las 01:30). GOV.5: análisis en `docs/specs/GOV.5-analisis.md`, propuesta
-  (comando `item:close` + podas) **esperando GO de Carlos**. RUN.3: diagnóstico en `docs/specs/RUN.3-diagnostico.md`,
-  propuesta (`settled` por turno/lanzamiento) **esperando GO**
-  (GO 2026-11-27, análisis de pi.dev en PLAN.md); GOV.5 ya en `analizar` (`/tmp/gov5-analizar.txt`).
-- Pendiente de Carlos: ¿sumar USO.52 (salida declarada faltante no revierte lo escrito) y USO.53 (el ejecutor puede
-  preguntar/escalar en vez de fallar, como el `question` de Orca)? Investigación Orca/T3: `/tmp/investigar-orca-t3.txt`
-  (efímero; resumen: Orca coordina por mensajes y sin QA automático; T3 no coordina).
+Siguiente, en orden (GO de Carlos a A→B→C del análisis de pi.dev; B y C esperan GO de su propuesta):
+1. **Leer el resultado de la nocturna** (startup-guard) y resolver lo rojo con triage (`AGENTS.md`).
+2. **GOV.5** — propuesta en `docs/specs/GOV.5-analisis.md`: comando `bun run item:close` (valida todo junto, genera
+   líneas de cierre/evidencia/procedencia, reconcilia una vez, commit por rutas) + podas (formato exacto,
+   `.some()` de live-gate, preflight sin ítem para diagnóstico, hook del cerebro por tamaño de diff, ledger). Se
+   quedan secretos, tsc, candado, evidencia y `plan:render --check`. **Esperando GO de Carlos.**
+3. **RUN.3** — diagnóstico en `docs/specs/RUN.3-diagnostico.md`: `settled: null | {outcome, reason}` por turno y por
+   lanzamiento; `pending` hoy también significa "terminó sin éxito" (`src/cli.ts:1356`); `/turn-status` trata
+   `cancelled` como `pending`. Migrar primero `chat-retry-report`, `read-boundary`, `project-isolation`.
+   **Esperando GO de Carlos.**
+4. **USO.41** — ahora incluye: en la pestaña nueva de Codex el compositor visible queda vacío tras `fill` (¿borrador
+   reseteado al crear la sesión, `composer-drafts.ts`?). Diagnosticar si es producto.
+
+Trampas: el hook `brain-no-code` niega al cerebro Bash/Write en `src/` y `scripts/` (incluso un JSON) pero permite
+`Edit` ≤20 líneas: usar `Edit` para fixes chicos. Cerrar ítem: `plan:reconcile` tras editar PLAN; para cambiar texto
+de un ítem ya `[x]` en DB hay que reabrir→reconcile→recerrar→reconcile; "Gate en vivo:" con navegador/Playwright y
+la ruta de evidencia en la MISMA línea; `Spec: docs/specs/X.md` al final exacto de línea; el spec delegado necesita
+ítem abierto en PLAN (preflight). Intermitente sin causa: `SQLITE_IOERR_VNODE` (`run-steps.ts:40`) tumbó el
+dashboard una vez en `chat-retry-report`; si reaparece, diagnosticar.
+
+Pendiente de Carlos: GO de GOV.5 y RUN.3; ¿borrar la rama remota `origin/cagr1/fix-dashboard-ui-bugs`?; ¿USO.52
+(salida declarada faltante no revierte lo escrito) y USO.53 (el ejecutor puede preguntar/escalar)?; 4 worktrees
+`sync-*` en MemoriesMD (uno con cambios sin commitear en `projects/orchestos/decisions.md`, `estado.md`).
 
 ## Pausa 2026-11-23 — al volver, decidir esto primero
 
