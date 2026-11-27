@@ -240,7 +240,7 @@
       "sprint": "Etapa 2 — Uso real",
       "block": null,
       "title": "Cerrar un ítem cuesta más que hacerlo",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -256,7 +256,7 @@
       "sprint": "Etapa 2 — Uso real",
       "block": null,
       "title": "`bun run item:close`",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

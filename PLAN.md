@@ -353,7 +353,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   de flujos al cerrar cambios de comportamiento en `AGENTS.md`. Riesgo abierto: si el Mac duerme a las 01:30 la
   corrida sale inválida (ya pasó antes de CI.85); lo dirá el startup-guard.
   Sin delegación: flag y regla, cambio del cerebro.
-- [ ] **GOV.5 — Cerrar un ítem cuesta más que hacerlo.** (GO de Carlos 2026-11-27) Evidencia de 2026-11-26: cerrar
+- [x] **GOV.5 — Cerrar un ítem cuesta más que hacerlo.** (GO de Carlos 2026-11-27) Evidencia de 2026-11-26: cerrar
   USO.49 tomó ~6 intentos de commit (`plan:render` exige `plan:reconcile`, y tras cerrar hay que reabrir/recerrar
   para cambiar texto; `agent:live-gate` exige ruta en la misma línea de "Gate en vivo:" con navegador/Playwright;
   provenance exige `Spec:` al final exacto de línea; preflight rechaza ítems fuera del plan; el hook niega al cerebro
@@ -361,6 +361,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   propuesta a Carlos (un comando de cierre + poda) antes de tocar hooks.
   2026-11-27: análisis en `docs/specs/GOV.5-analisis.md`; GO de Carlos a la propuesta. Se ejecuta en GOV.5.1 (podas)
   y GOV.5.2 (`item:close`). Se quedan secretos, tsc, candado, evidencia real y `plan:render --check`.
+  Sin delegación: padre; hijos GOV.5.1 y GOV.5.2 cerrados.
 - [x] **GOV.5.1 — Podas de los controles de cierre.** (GO de Carlos 2026-11-27) Cierre pendiente idempotente (editar
   un ítem recién cerrado sin reabrir), `Spec:` en cualquier lugar de la línea de procedencia, evidencia en vivo por
   cada ítem cerrado (no `.some()`) y en cualquier línea del cierre, preflight sin ítem para diagnóstico, Biome
@@ -371,9 +372,15 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   del spec y se mantiene: el control nuevo atrapa dos cierres "en vivo" con un solo archivo. Reglas al día en
   `AGENTS.md`, `CLAUDE.md` y `NEXT.md`.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/GOV.5.1.md
-- [ ] **GOV.5.2 — `bun run item:close`.** (GO de Carlos 2026-11-27) Un comando cierra el ítem: valida todo junto
+- [x] **GOV.5.2 — `bun run item:close`.** (GO de Carlos 2026-11-27) Un comando cierra el ítem: valida todo junto
   antes de los checks caros, genera las líneas de cierre/evidencia/procedencia, reconcilia una vez y commitea por
   rutas explícitas. Va después de GOV.5.1.
+  Hecho: `scripts/item-close.ts` (`bun run item:close`): valida ítem, candado, rutas, procedencia y evidencia y
+  reporta todos los errores juntos; escribe las líneas de cierre sin duplicarlas; borra el spec; formatea con Biome
+  antes del commit (el autoformato del pre-commit con `git commit -- <rutas>` dejaba el índice real sin formatear);
+  reconcilia, commitea sin `--no-verify` y sube. 8 tests (`scripts/item-close.test.ts`). Este cierre lo hizo el
+  propio comando.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/GOV.5.2.md
 - [ ] **RUN.3 — Fin de turno explícito en chat y gates.** (GO de Carlos 2026-11-27; idea de pi: `success` = aceptado,
   fin = `agent_settled`) Evidencia: flujos que esperan una respuesta HTTP y mueren con la espera huérfana
   (`chat-retry-report` 2026-11-25, `read-boundary` 2026-11-27, `project-isolation` en USO.41). Alcance: verificar si

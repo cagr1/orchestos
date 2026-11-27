@@ -69,9 +69,14 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 
 ## PLAN.md y su DB
 
-- `PLAN.md` se renderiza desde la DB: tras editarlo, `bun run plan:reconcile` una vez antes del commit. Segundo
-  reconcile con un `[x]` sin commitear → "Could not prove a closing commit SHA": reabrir `[ ]`, reconcile, `[x]`,
-  reconcile.
+- **Cerrar un ítem: `bun run item:close -- --item <ID> --message "<asunto>" --body "<cuerpo + Co-Authored-By>"
+  --path <ruta>… (--executor "<modelo (rol)>" --spec docs/specs/<ID>.md | --no-delegation "<motivo>") [--live "<cómo>"
+  --evidence <ruta>…]`** (GOV.5.2): valida todo junto, marca `[x]`, escribe las líneas de gate/procedencia, borra el
+  spec, formatea, reconcilia, commitea por rutas y sube. El "Hecho:" lo escribe antes el cerebro. `--dry-run` muestra
+  sin escribir; re-correrlo tras un fallo es seguro.
+- `PLAN.md` se renderiza desde la DB: tras editarlo a mano, `bun run plan:reconcile` una vez antes del commit. Desde
+  GOV.5.1 (2026-11-27) un `[x]` sin commitear se re-reconcilia sin reabrirlo; antes había que reabrir `[ ]`,
+  reconcile, `[x]`, reconcile.
 - Ítem = línea de primer nivel `- [ ] **ID — título.**` con `**` cerrado en la misma línea; el preflight no ve
   sub-ítems con sangría (usar el padre).
 - `--scope` del preflight usa globs (`src/dashboard/**`) e incluye `PLAN.md`, `NEXT.md`, `LEDGER.md`, `docs/**` y
