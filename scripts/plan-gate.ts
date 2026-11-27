@@ -197,7 +197,9 @@ export function checkProvenance(): void {
       .split('\n')
       .some((item) => item.startsWith('+') && /^\+\s+Ejecutado por:/.test(item))
     if (noDelegation) continue
-    const declaration = segment.text.match(/^\s+Ejecutado por: .+ · Spec: (docs\/specs\/\S+\.md)$/m)
+    const declaration = segment.text.match(
+      /^\s+Ejecutado por: .+?· Spec: (docs\/specs\/[^\s`)]+\.md)/m,
+    )
     const referencedSpec = declaration?.[1]
     const ownSpecDeleted = deletedSpecs.has(`docs/specs/${id}.md`)
     const ownSpec = `docs/specs/${id}.md`

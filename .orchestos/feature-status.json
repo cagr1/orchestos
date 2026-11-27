@@ -244,6 +244,22 @@
       "closedDate": null
     },
     {
+      "id": "GOV.5.1",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Podas de los controles de cierre",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "GOV.5.2",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "`bun run item:close`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "RUN.3",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

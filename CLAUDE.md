@@ -33,7 +33,8 @@ Nunca `git config user.email|user.name`, ni `--local`/`--global` salvo pedido ex
 ## Hooks de git
 
 `bun run hooks:install` instala ambos. pre-commit (`scripts/pre-commit.sh`): `tsc --noEmit`, `security:secrets`,
-`ledger:gate`, export de `runs-summary.json`, y aborta si el hook difiere de su fuente. pre-push (`scripts/pre-push.sh`):
+export de `runs-summary.json` (Biome formatea las rutas staged sin cambios pendientes; `ledger:gate` salió del
+pre-commit el 2026-11-27, GOV.5.1), y aborta si el hook difiere de su fuente. pre-push (`scripts/pre-push.sh`):
 `tsc`, lint y `bun run test:coverage`. Los `ui:gate` (todos, chat incluido) corren de noche en local
 (`scripts/nightly-ui-gates.ts`, `bun run nightly:install`); el resultado lo muestra el startup-guard. Antes (hasta
 2026-11-08) el pre-push corría 17 flujos + chat-gates. Gates en vivo con home temporal:

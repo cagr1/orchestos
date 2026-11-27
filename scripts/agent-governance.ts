@@ -117,15 +117,12 @@ export function liveGateEvidenceByClosedItem(planDiff: string): string[][] {
       current.push(line)
     }
   }
+  // GOV.5.1: la ruta puede ir en cualquier línea del cierre; un cierre sin la frase no cuenta.
   return groups
-    .map((group) =>
-      citedEvidenceFiles(
-        group
-          .filter((line) => /Gate en vivo:.*(?:navegador|browser|Playwright)/i.test(line))
-          .join('\n'),
-      ),
+    .filter((group) =>
+      group.some((line) => /Gate en vivo:.*(?:navegador|browser|Playwright)/i.test(line)),
     )
-    .filter((cited) => cited.length > 0)
+    .map((group) => citedEvidenceFiles(group.join('\n')))
 }
 
 /**
@@ -145,7 +142,9 @@ export function hasLiveGateEvidence(
 ): boolean {
   const staged = new Set(stagedPaths)
   const blobs = new Set(stagedBlobPaths)
-  return liveGateEvidenceByClosedItem(planDiff).some((cited) =>
-    cited.some((path) => staged.has(path) && blobs.has(path)),
+  const groups = liveGateEvidenceByClosedItem(planDiff)
+  return (
+    groups.length > 0 &&
+    groups.every((cited) => cited.some((path) => staged.has(path) && blobs.has(path)))
   )
 }

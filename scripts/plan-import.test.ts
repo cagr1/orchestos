@@ -171,17 +171,7 @@ Evidencia controlada del ítem cerrado.
   }
 })
 
-/**
- * S.6a part C regression — discovered while closing S.6a itself, not in the original spec.
- * The pre-commit hook's `plan:render --check` requires `plan_doc_segments` to already match
- * the STAGED (not yet committed) PLAN.md, which means reconcile must run before the closing
- * commit exists. A closing commit therefore cannot be proven yet for the item this very call
- * is transitioning to `done` — that item gets the same provisional `git rev-parse HEAD` the
- * dashboard's `preparePlanItemClose()` already uses, confirmed later by a post-commit reconcile.
- * An item that was ALREADY `done` before this call gets no such leniency: it must always prove
- * its own commit, or the whole reconcile aborts — this is the guarantee the fix is actually for.
- */
-test('reconcile accepts a provisional HEAD for a newly-closing item, but never for an already-closed one', async () => {
+test('reconcile is idempotent before commit and proves historical closing SHAs', async () => {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-provisional-'))
   const fixture = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-provisional-fixture-'))
   const gitEnv = {
@@ -253,16 +243,19 @@ test('reconcile accepts a provisional HEAD for a newly-closing item, but never f
     const provisionalRow = JSON.parse(preCommitReconcile.stdout)
     expect(provisionalRow).toEqual({ status: 'done', commit_sha: headBeforeCommit })
 
-    // A second reconcile with STILL no real commit must now fail: F.1 is already `done` in the
-    // DB, so its provisional SHA no longer gets a free pass — it must prove a real transition.
+    // Editing the pending close does not require reopening it first.
+    writeFileSync(
+      join(fixture, 'PLAN.md'),
+      '## Sprint fixture\n- [x] **F.1 — Open item.**\n  Updated body for F.1.\n',
+    )
     const secondReconcileWithoutCommit = await run(`
       const { importPlan } = await import('./scripts/plan-import.ts')
+      const { db } = await import('./src/db/sqlite.ts')
       importPlan(process.env.PLAN_IMPORT_FIXTURE_ROOT, true)
+      process.stdout.write(JSON.stringify(db.query('SELECT body FROM plan_items WHERE id = ?').get('F.1')))
     `)
-    expect(secondReconcileWithoutCommit.exitCode).not.toBe(0)
-    expect(secondReconcileWithoutCommit.stderr).toContain(
-      'Could not prove a closing commit SHA for F.1',
-    )
+    expect(secondReconcileWithoutCommit.exitCode, secondReconcileWithoutCommit.stderr).toBe(0)
+    expect(JSON.parse(secondReconcileWithoutCommit.stdout).body).toContain('Updated body')
 
     // Now make the real closing commit and reconcile again: the provisional SHA must be
     // replaced by the real one, proven by history — never left standing unverified.
@@ -284,6 +277,16 @@ test('reconcile accepts a provisional HEAD for a newly-closing item, but never f
       commit_sha: realSha,
     })
     expect(realSha).not.toBe(headBeforeCommit)
+    // A forged stored SHA cannot replace the historical closing commit.
+    const forgedReconcile = await run(`
+      const { importPlan } = await import('./scripts/plan-import.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      db.run('UPDATE plan_items SET commit_sha = ? WHERE id = ?', ['f'.repeat(40), 'F.1'])
+      importPlan(process.env.PLAN_IMPORT_FIXTURE_ROOT, true)
+      process.stdout.write(JSON.stringify(db.query('SELECT commit_sha FROM plan_items WHERE id = ?').get('F.1')))
+    `)
+    expect(forgedReconcile.exitCode, forgedReconcile.stderr).toBe(0)
+    expect(JSON.parse(forgedReconcile.stdout).commit_sha).toBe(realSha)
   } finally {
     rmSync(home, { recursive: true, force: true })
     rmSync(fixture, { recursive: true, force: true })
@@ -377,19 +380,18 @@ test('reconcile keeps a reclosed item pending instead of reviving its pre-reopen
     })
 
     const repeatedReconcile = await reconcile()
-    expect(repeatedReconcile.exitCode).not.toBe(0)
-    expect(repeatedReconcile.stderr).toContain('Could not prove a closing commit SHA for F.1')
-    const statusAfterRejectedReconcile = await run(`
+    expect(repeatedReconcile.exitCode, repeatedReconcile.stderr).toBe(0)
+    const statusAfterRepeatedReconcile = await run(`
       const { listPlanItemsWithCommitStatus } = await import('./src/db/plan-items.ts')
       const { db } = await import('./src/db/sqlite.ts')
       process.stdout.write(JSON.stringify(listPlanItemsWithCommitStatus(process.env.PLAN_IMPORT_FIXTURE_ROOT, db)))
     `)
-    expect(statusAfterRejectedReconcile.exitCode, statusAfterRejectedReconcile.stderr).toBe(0)
-    expect(JSON.parse(statusAfterRejectedReconcile.stdout)[0]).toMatchObject({
+    expect(statusAfterRepeatedReconcile.exitCode, statusAfterRepeatedReconcile.stderr).toBe(0)
+    expect(JSON.parse(statusAfterRepeatedReconcile.stdout)[0]).toMatchObject({
       status: 'done',
       commitPending: true,
     })
-    expect(JSON.parse(statusAfterRejectedReconcile.stdout)[0].commitSha).not.toBe(closeA)
+    expect(JSON.parse(statusAfterRepeatedReconcile.stdout)[0].commitSha).not.toBe(closeA)
   } finally {
     rmSync(home, { recursive: true, force: true })
     rmSync(fixture, { recursive: true, force: true })

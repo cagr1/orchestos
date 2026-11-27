@@ -15,7 +15,7 @@ const CODE_PREFIXES = ['src/', 'tests/', 'scripts/', '.claude/hooks/']
 const SMALL_FIX_MAX_LINES = 20
 const FIXES_ROOT = process.env.BRAIN_FIXES_ROOT || resolve(ROOT, '.orchestos/brain-fixes')
 const FIX_LIMIT_MESSAGE =
-  'Tercer Edit del cerebro desde la última delegación: reescribe el spec y re-delega a criterio (GOV.4).'
+  '40 líneas acumuladas desde la última delegación: reescribe el spec y re-delega'
 
 function fixesPath(input) {
   const sessionId = input?.session_id
@@ -23,23 +23,23 @@ function fixesPath(input) {
   return join(FIXES_ROOT, `${encodeURIComponent(sessionId)}.json`)
 }
 
-function writeFixCount(path, count) {
+function writeFixLines(path, lines) {
   mkdirSync(FIXES_ROOT, { recursive: true })
-  writeFileSync(path, JSON.stringify({ count }))
+  writeFileSync(path, JSON.stringify({ lines }))
 }
 
-function countSmallFix(input) {
+function countSmallFix(input, size) {
   const path = fixesPath(input)
   if (!path) return null
-  let count = 0
+  let lines = 0
   try {
     const state = JSON.parse(readFileSync(path, 'utf8'))
-    if (Number.isInteger(state.count) && state.count >= 0) count = state.count
+    if (Number.isInteger(state.lines) && state.lines >= 0) lines = state.lines
   } catch {
     // Una sesión nueva empieza sin contador.
   }
-  if (count >= 2) return { reason: FIX_LIMIT_MESSAGE }
-  writeFixCount(path, count + 1)
+  if (lines + size > 40) return { reason: FIX_LIMIT_MESSAGE }
+  writeFixLines(path, lines + size)
   return null
 }
 const MESSAGE_PREFIX =
@@ -160,7 +160,7 @@ function shouldDeny(input) {
     const size = toolName === 'Edit' ? editSize(toolInput) : multiEditSize(toolInput.edits)
     if (size === null || size > SMALL_FIX_MAX_LINES) return { path, sizeDenied: true }
     if (path.startsWith('.claude/hooks/')) return { path }
-    return countSmallFix(input)
+    return countSmallFix(input, size)
   }
   if (toolName === 'NotebookEdit') {
     const path = relativePath(toolInput.notebook_path)
@@ -181,7 +181,7 @@ function shouldDeny(input) {
   }
   const delegation = /agent-method\/bin\/delegate["']?\s+(?:mecanico|criterio-alt|criterio)(?=\s|$)/
   const path = fixesPath(input)
-  if (path && delegation.test(toolInput.command)) writeFixCount(path, 0)
+  if (path && delegation.test(toolInput.command)) writeFixLines(path, 0)
   return null
 }
 

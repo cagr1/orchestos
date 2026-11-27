@@ -37,18 +37,12 @@ function gitHead(root: string): string | null {
 }
 
 /**
- * S.6a part C found this the hard way: the pre-commit hook's `plan:render --check` expects
- * `plan_doc_segments` to already reflect the staged PLAN.md, which means reconcile has to run
- * BEFORE the closing commit exists — but a proof of that commit cannot exist yet either. The
- * fix distinguishes two cases instead of one blanket rule:
- *   - an item transitioning open→done in THIS very call has no history to prove — it gets the
- *     same provisional `git rev-parse HEAD` that `preparePlanItemClose()` already writes for the
- *     dashboard's own prepare-close flow, and `listPlanItemsWithCommitStatus()` correctly shows
- *     it as `commitPending` until a later reconcile (after the real commit) confirms it;
- *   - an item that was ALREADY `done` before this call must still prove its stored SHA — this is
- *     the guarantee the fix was for or actually about: no more inventing a fresh HEAD for a
- *     historical close whose commit doesn't say so, which is what let a false claim through
- *     undetected before (see PLAN.md's Bloque S evidence for S.6a).
+ * S.6a part C: `plan:render --check` needs reconcile BEFORE the closing commit exists, so an item
+ * newly closed by reconcile gets a provisional `git rev-parse HEAD` (`commitPending` until a later
+ * reconcile confirms it). A close that git already records must prove that commit, never a fresh HEAD.
+ * GOV.5.1 (2026-11-27): until then an item already `done` in the DB also had to prove its SHA, so
+ * editing a just-closed, uncommitted item forced reopen→reconcile→reclose→reconcile. Now a close
+ * with no transition commit in git yet stays pending and accepts the provisional HEAD.
  */
 function commitShaFor(
   item: PlanItemSource,
@@ -91,11 +85,10 @@ function importSources(sources: PlanItemSource[], root: string, reconcile: boole
       if (item.status === 'done' && !body.trim()) {
         throw new Error(`Closed plan item ${item.id} has an empty body`)
       }
-      // Provisional-HEAD is only for the reconcile-before-commit workflow, and only for an
-      // item this very call is newly closing — never for the one-time seed import, and never
-      // for an item that was already `done` (that must always prove its stored commit).
       const wasAlreadyDone = getPlanItem(item.id, db)?.status === 'done'
-      const allowProvisional = reconcile && !wasAlreadyDone
+      const allowProvisional =
+        reconcile &&
+        (!wasAlreadyDone || !closeCommits.has(item.id) || reopenedAfterLatestClose.has(item.id))
       upsertPlanItem(
         {
           id: item.id,

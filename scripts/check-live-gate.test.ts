@@ -171,3 +171,30 @@ it('fails when the archived section is missing the browser/Playwright phrase ent
   unlinkSync(join(root, 'docs/specs/F.1.md'))
   expect(main(root)).toBe(1)
 })
+
+it('requires staged evidence for every archived closing item, with citations on following lines', () => {
+  const root = makeRepo()
+  baseCommit(root)
+  write(root, 'PLAN.md', '- [ ] **F.1 — First.**\n- [ ] **F.2 — Second.**\n')
+  git(root, ['add', 'PLAN.md'])
+  git(root, ['commit', '-m', 'open both items'])
+  write(root, 'src/dashboard/app/src/App.tsx', 'export default function App() { return null }\n')
+  write(
+    root,
+    'PLAN.md',
+    '- [x] **F.1 — First.** → [evidencia](docs/done/bloque-F.md#f1)\n' +
+      '- [x] **F.2 — Second.** → [evidencia](docs/done/bloque-F.md#f2)\n',
+  )
+  write(
+    root,
+    'docs/done/bloque-F.md',
+    '<a id="f1"></a>\nGate en vivo: navegador real.\n`scripts/f1-evidence.json`\n' +
+      '<a id="f2"></a>\nGate en vivo: Playwright real.\n`scripts/f2-evidence.json`\n',
+  )
+  write(root, 'scripts/f1-evidence.json', '{}\n')
+  git(root, ['add', '-A'])
+  expect(main(root)).toBe(1)
+  write(root, 'scripts/f2-evidence.json', '{}\n')
+  git(root, ['add', 'scripts/f2-evidence.json'])
+  expect(main(root)).toBe(0)
+})

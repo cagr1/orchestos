@@ -296,3 +296,16 @@ it('finds open parents whose letter and dotted numeric children are all done', a
   ].join('\n')
   expect(parentsWithAllChildrenDone(plan)).toEqual([{ parent: 'P.1', children: ['P.1a', 'P.1.1'] }])
 })
+
+it('accepts text after Spec in an inline executor declaration', async () => {
+  const { code, out, err } = await runScenario(
+    scenarioScript(`
+      git(['rm', 'docs/specs/F.1.md'])
+      git(['commit', '-m', 'remove fixture spec before close'])
+      write('PLAN.md', '- [x] **F.1 — Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/F.1.md (borrado) · revisión pendiente\\n')
+      git(['add', 'PLAN.md'])
+    `),
+  )
+  expect(code, err).toBe(0)
+  expect(JSON.parse(out).threw).toBeNull()
+})

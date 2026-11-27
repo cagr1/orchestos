@@ -73,13 +73,34 @@ describe('agent governance', () => {
       '+ - [x] **A.2 — otro**\n' +
       '+  Evidencia ajena: `scripts/a2-evidence.json`.'
     expect(hasLiveGateEvidence(diffAjeno, ['scripts/a2-evidence.json'])).toBe(false)
-    const diffCitaFueraDeGate =
+    const diffCitaEnOtraLinea =
       '+ - [x] **A.1 — UI**\n' +
       '+  Gate en vivo: navegador real confirmó el flujo.\n' +
-      '+  Archivo ajeno: `scripts/a1-evidence.json`.'
-    expect(hasLiveGateEvidence(diffCitaFueraDeGate, ['scripts/a1-evidence.json'])).toBe(false)
+      '+  Evidencia: `scripts/a1-evidence.json`.'
+    expect(hasLiveGateEvidence(diffCitaEnOtraLinea, ['scripts/a1-evidence.json'])).toBe(true)
 
     expect(hasLiveGateEvidence('+ - [x] **A.1 — UI**\n+  Tests unitarios verdes.', [])).toBe(false)
     expect(hasLiveGateEvidence('+ Gate en vivo: navegador real.', [])).toBe(false)
   })
+})
+
+test('cada ítem cerrado necesita evidencia staged propia', () => {
+  const first = '+ - [x] **A.1 — UI**\n+  Gate en vivo: navegador `a.json`.\n'
+  for (const second of [
+    '+ - [x] **A.2 — UI**\n+  Gate en vivo: browser `b.json`.',
+    '+ - [x] **A.2 — UI**\n+  Gate en vivo: navegador, sin ruta.',
+  ]) {
+    expect(hasLiveGateEvidence(first + second, ['a.json'])).toBe(false)
+    expect(hasLiveGateEvidence(first + second, ['a.json', 'b.json'], ['a.json'])).toBe(false)
+  }
+  // Un cierre sin "Gate en vivo" (p. ej. el padre que se cierra con su hijo) no exige evidencia propia.
+  expect(
+    hasLiveGateEvidence(first + '+ - [x] **A.2 — padre**\n+  Hijos cerrados.', ['a.json']),
+  ).toBe(true)
+  expect(
+    hasLiveGateEvidence(first + '+ - [x] **A.2 — UI**\n+  Gate en vivo: browser `b.json`.', [
+      'a.json',
+      'b.json',
+    ]),
+  ).toBe(true)
 })

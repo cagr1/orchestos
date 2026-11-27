@@ -35,7 +35,8 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 - Cerebro: abre el ítem en `PLAN.md`, escribe `docs/specs/<ID>.md` (qué, dónde `archivo:línea`, qué no tocar, cómo
   se verifica, qué hacer si falta un dato), delega, verifica con comandos propios y cierra. No escribe código de
   producto (`src/`, `tests/`, `scripts/`, `.claude/hooks/`) salvo **fixes chicos**: si el spec saldría más largo
-  que el diff o el archivo ya está en contexto, lo edita él (hasta 20 líneas por edición, nunca `.claude/hooks/`) y
+  que el diff o el archivo ya está en contexto, lo edita él (hasta 20 líneas por edición y 40 acumuladas desde la última delegación, nunca `.claude/hooks/`;
+  hasta 2026-11-27 el tope era 2 Edits, GOV.5.1) y
   `qa` (otro proveedor) revisa el diff. Sí escribe `PLAN.md`, `NEXT.md`, `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`,
   `docs/`. En Claude Code lo hace cumplir `.claude/hooks/brain-no-code.js` (AT.22); en Codex rige este texto.
   Historial: hasta 2026-11-11 el cerebro no escribía nada de código; Carlos sumó la excepción el 2026-11-10 en las

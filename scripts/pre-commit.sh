@@ -57,10 +57,24 @@ while IFS= read -r -d '' file; do
 done < <(git diff --cached --name-only --diff-filter=ACMR -z)
 if ((${#biome_files[@]})); then
   if ! bunx biome check --diagnostic-level=error --no-errors-on-unmatched --files-ignore-unknown=true "${biome_files[@]}"; then
-    printf '✗ biome: ejecuta bunx biome check --write' >&2
-    printf ' %q' "${biome_files[@]}" >&2
-    printf '\n' >&2
-    exit 1
+    for file in "${biome_files[@]}"; do
+      if ! git diff --quiet -- "$file"; then
+        printf '✗ biome: cambios sin stagear en %q; formatea y stagea antes de commitear\n' "$file" >&2
+        exit 1
+      fi
+    done
+    for file in "${biome_files[@]}"; do
+      if ! bunx biome check --write --diagnostic-level=error --no-errors-on-unmatched --files-ignore-unknown=true "$file"; then
+        printf '✗ biome: errores no autoformateables en %q\n' "$file" >&2
+        exit 1
+      fi
+      git add -- "$file"
+      printf '🎨 Biome formateó %q\n' "$file"
+    done
+    if ! bunx biome check --diagnostic-level=error --no-errors-on-unmatched --files-ignore-unknown=true "${biome_files[@]}"; then
+      printf '✗ biome: el check sigue fallando tras autoformatear\n' >&2
+      exit 1
+    fi
   fi
 fi
 
@@ -77,12 +91,6 @@ if git diff --cached --name-only --diff-filter=ACMRTUXB | grep -Fxq 'PLAN.md'; t
   rm -f "$staged_plan"
   trap - EXIT
 fi
-
-# Mes 22/F.2 — gate del ledger de responsabilidad de LLMs: si el commit toca un
-# archivo listado en .claude/protected-rules.json, exige una entrada nueva en
-# LEDGER.md en el mismo commit. Gobernanza de este repo, no feature del producto.
-echo "📒 Verificando gate del ledger (Mes 22/F.2)..."
-bun run ledger:gate
 
 echo "🖥️ Verificando evidencia en vivo para dashboard/config..."
 bun run agent:live-gate

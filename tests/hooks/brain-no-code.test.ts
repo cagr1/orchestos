@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -303,14 +303,22 @@ describe('GOV.4 small fix budget', () => {
   }
   const edit = { file_path: 'src/a.ts', old_string: 'a', new_string: 'b' }
 
-  it('allows two edits, denies the third, and isolates sessions', () => {
+  const sizedEdit = (lines: number) => ({ ...edit, new_string: Array(lines).fill('x').join('\n') })
+
+  it('allows three five-line edits, caps accumulated lines at 40 and isolates sessions', () => {
     const { root, run } = fixture()
     try {
-      expect(run('Edit', edit)).toBe('')
-      expect(run('MultiEdit', { file_path: 'tests/a.ts', edits: [edit] })).toBe('')
+      for (let i = 0; i < 3; i += 1) expect(run('Edit', sizedEdit(5))).toBe('')
+      expect(
+        run('MultiEdit', { file_path: 'tests/a.ts', edits: [sizedEdit(10), sizedEdit(10)] }),
+      ).toBe('')
+      expect(run('Edit', sizedEdit(5))).toBe('')
       expect(run('Edit', edit)).toContain(
-        'Tercer Edit del cerebro desde la última delegación: reescribe el spec y re-delega a criterio (GOV.4).',
+        '40 líneas acumuladas desde la última delegación: reescribe el spec y re-delega',
       )
+      expect(JSON.parse(readFileSync(join(root, 'fixes/brain.json'), 'utf8'))).toEqual({
+        lines: 40,
+      })
       expect(run('Edit', edit, 'another')).toBe('')
     } finally {
       rmSync(root, { recursive: true, force: true })
@@ -320,20 +328,32 @@ describe('GOV.4 small fix budget', () => {
   it('resets only on writing delegations; denied and docs edits do not count', () => {
     const { root, run } = fixture()
     try {
-      expect(run('Edit', { ...edit, new_string: Array(21).fill('x').join('\n') })).toContain('deny')
+      expect(run('Edit', sizedEdit(21))).toContain('deny')
       expect(run('Edit', { ...edit, file_path: 'docs/a.md' })).toBe('')
-      expect(run('Edit', edit)).toBe('')
-      expect(run('Edit', edit)).toBe('')
+      expect(run('Edit', sizedEdit(20))).toBe('')
+      expect(run('Edit', sizedEdit(20))).toBe('')
       for (const role of ['qa', 'leer', 'analizar']) {
         expect(run('Bash', { command: `~/.agent-method/bin/delegate ${role} x.md` })).toBe('')
-        expect(run('Edit', edit)).toContain('Tercer Edit')
+        expect(run('Edit', edit)).toContain('40 líneas acumuladas')
       }
       for (const role of ['criterio', 'mecanico', 'criterio-alt']) {
         expect(run('Bash', { command: `~/.agent-method/bin/delegate ${role} x.md` })).toBe('')
-        expect(run('Edit', edit)).toBe('')
-        expect(run('Edit', edit)).toBe('')
-        expect(run('Edit', edit)).toContain('Tercer Edit')
+        expect(run('Edit', sizedEdit(20))).toBe('')
+        expect(run('Edit', sizedEdit(20))).toBe('')
+        expect(run('Edit', edit)).toContain('40 líneas acumuladas')
       }
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('starts legacy count-only states at zero lines', () => {
+    const { root, run } = fixture()
+    try {
+      mkdirSync(join(root, 'fixes'))
+      writeFileSync(join(root, 'fixes/brain.json'), JSON.stringify({ count: 2 }))
+      expect(run('Edit', sizedEdit(5))).toBe('')
+      expect(JSON.parse(readFileSync(join(root, 'fixes/brain.json'), 'utf8'))).toEqual({ lines: 5 })
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

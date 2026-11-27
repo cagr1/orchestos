@@ -30,7 +30,7 @@ function hasArchivedLiveGateEvidence(
   const stagedPlan = runCommand(['git', 'show', ':PLAN.md'], root)
   if (stagedPlan.exitCode !== 0) return false
   const sources = new Map(parsePlanItemSources(stagedPlan.stdout).map((item) => [item.id, item]))
-  return closed.some((id) => {
+  return closed.every((id) => {
     const href = sources.get(id)?.evidenceHref
     if (!href) return false
     let section: string

@@ -26,9 +26,8 @@ Siguiente, en orden (GO de Carlos a A→B→C del análisis de pi.dev; B y C esp
    Los 8 flujos de lanzamiento sin id de sesión a mano (`auto-flow`, `chat-settings`, …) se ven en la nocturna.
 
 Trampas: el hook `brain-no-code` niega al cerebro Bash/Write en `src/` y `scripts/` (incluso un JSON) pero permite
-`Edit` ≤20 líneas: usar `Edit` para fixes chicos. Cerrar ítem: `plan:reconcile` tras editar PLAN; para cambiar texto
-de un ítem ya `[x]` en DB hay que reabrir→reconcile→recerrar→reconcile; "Gate en vivo:" con navegador/Playwright y
-la ruta de evidencia en la MISMA línea; `Spec: docs/specs/X.md` al final exacto de línea; el spec delegado necesita
+`Edit` ≤20 líneas: usar `Edit` para fixes chicos. Cerrar ítem: `plan:reconcile` tras editar PLAN (desde GOV.5.1 un cierre sin commit se edita sin reabrir; `Spec:`
+ya no tiene que ir al final de la línea; la ruta de evidencia puede ir en cualquier línea del cierre); el spec delegado necesita
 ítem abierto en PLAN (preflight). Intermitente sin causa: `SQLITE_IOERR_VNODE` (`run-steps.ts:40`) tumbó el
 dashboard una vez en `chat-retry-report`; si reaparece, diagnosticar.
 

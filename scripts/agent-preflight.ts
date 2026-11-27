@@ -43,8 +43,10 @@ export function main(argv = process.argv.slice(2), root = resolve('.')): number 
     }
   }
   if (!args.item) {
-    console.error('✗ Falta --item <ID>; ningún agente puede editar sin un ítem abierto de PLAN.md')
-    return 1
+    console.log(
+      '✓ Preflight de diagnóstico (solo lectura): para editar, --item <ID> abierto en PLAN.md',
+    )
+    return 0
   }
 
   function readActiveItem(dir: string): { item: string } | null {

@@ -359,6 +359,21 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   provenance exige `Spec:` al final exacto de línea; preflight rechaza ítems fuera del plan; el hook niega al cerebro
   un fix de una línea en `scripts/`/`src/`). Alcance: `analizar` mide qué hook atrapó un error real y cuál solo frenó;
   propuesta a Carlos (un comando de cierre + poda) antes de tocar hooks.
+  2026-11-27: análisis en `docs/specs/GOV.5-analisis.md`; GO de Carlos a la propuesta. Se ejecuta en GOV.5.1 (podas)
+  y GOV.5.2 (`item:close`). Se quedan secretos, tsc, candado, evidencia real y `plan:render --check`.
+- [x] **GOV.5.1 — Podas de los controles de cierre.** (GO de Carlos 2026-11-27) Cierre pendiente idempotente (editar
+  un ítem recién cerrado sin reabrir), `Spec:` en cualquier lugar de la línea de procedencia, evidencia en vivo por
+  cada ítem cerrado (no `.some()`) y en cualquier línea del cierre, preflight sin ítem para diagnóstico, Biome
+  formatea las rutas staged, `ledger:gate` fuera del pre-commit, hook del cerebro por líneas acumuladas.
+  Hecho: los siete cambios, con test cada uno (67 pass en las 6 suites; `agent-preflight.test.ts` nuevo). Un SHA de
+  cierre que git ya registra sigue probándose (test con SHA falsificado). Decisión del cerebro: un cierre sin "Gate en
+  vivo" no exige evidencia propia (el padre que se cierra con su hijo); `qa` lo marcó P1 contra una lectura estricta
+  del spec y se mantiene: el control nuevo atrapa dos cierres "en vivo" con un solo archivo. Reglas al día en
+  `AGENTS.md`, `CLAUDE.md` y `NEXT.md`.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/GOV.5.1.md
+- [ ] **GOV.5.2 — `bun run item:close`.** (GO de Carlos 2026-11-27) Un comando cierra el ítem: valida todo junto
+  antes de los checks caros, genera las líneas de cierre/evidencia/procedencia, reconcilia una vez y commitea por
+  rutas explícitas. Va después de GOV.5.1.
 - [ ] **RUN.3 — Fin de turno explícito en chat y gates.** (GO de Carlos 2026-11-27; idea de pi: `success` = aceptado,
   fin = `agent_settled`) Evidencia: flujos que esperan una respuesta HTTP y mueren con la espera huérfana
   (`chat-retry-report` 2026-11-25, `read-boundary` 2026-11-27, `project-isolation` en USO.41). Alcance: verificar si
