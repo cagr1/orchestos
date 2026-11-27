@@ -40,6 +40,7 @@ import {
   renewTurnLease,
   requireTurnOwner,
   reserveTurnTask,
+  turnSettled,
 } from '../../db/chat-turns.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
 import { insertRun, listContextRuns } from '../../db/runs.ts'
@@ -1087,6 +1088,19 @@ async function handleApiChat(
   // ausente): sigue sin turno, mismo comportamiento que antes de R.5 — la
   // decisión de darle turno también es la Fase 2 (ver PLAN.md R.5, punto 12).
   let activeTurnId: string | null = null
+  const turnJsonResponse = (
+    data: Record<string, unknown>,
+    status = 200,
+    turnId = activeTurnId,
+  ): Response => {
+    const turn = turnId ? getTurn(turnId) : null
+    return jsonResponse(
+      { ...data, ...(turnId ? { turnId, settled: turn ? turnSettled(turn) : null } : {}) },
+      status,
+    )
+  }
+  const turnErrorResponse = (error: string, status: number): Response =>
+    turnJsonResponse({ error: redactSensitive(error) }, status)
   let signal: AbortSignal | undefined
   let leaseTimer: ReturnType<typeof setInterval> | undefined
   if (session) {
@@ -1153,7 +1167,7 @@ async function handleApiChat(
       // Reintento de una petición ya resuelta: replay del envelope guardado,
       // nunca una segunda llamada al proveedor (eso duplicaría costo/efectos).
       const envelope = parseTurnEnvelope(claim.turn) as Record<string, unknown> | null
-      if (envelope) return jsonResponse(envelope)
+      if (envelope) return turnJsonResponse(envelope, 200, claim.turn.id)
       return errorResponse('Stored response for this request could not be replayed', 500)
     }
     activeTurnId = claim.turn.id
@@ -1346,13 +1360,13 @@ async function handleApiChat(
       }
       persistChatStep({ type: 'notice', label: notice.message, notice })
       finishTurnFailure({ ...params, error: notice.message, persistExchange: true })
-      return jsonResponse({ error: notice.message, notice }, 502)
+      return turnJsonResponse({ error: notice.message, notice }, 502)
     }
 
     if (!chatAgent || !chatAssignment?.model) {
       const error = 'Orchestrator role is unassigned — assign it in Settings → Model routing'
       finishTurnFailure({ error })
-      return errorResponse(error, 400)
+      return turnErrorResponse(error, 400)
     }
 
     // CC.2 — una sesión es la fuente de verdad de su historia. Ignorar el array
@@ -1475,7 +1489,7 @@ async function handleApiChat(
       if (missing) {
         const error = `Attachment expired or not found: ${missing} file(s). Attach them again.`
         finishTurnFailure({ error })
-        return errorResponse(error, 400)
+        return turnErrorResponse(error, 400)
       }
     }
 
@@ -1544,11 +1558,11 @@ async function handleApiChat(
     const isOllama = /^ollama\//.test(model)
     if (session?.agent === 'local' && !isOllama) {
       finishTurnFailure({ error: 'A local session requires an ollama/* model', model })
-      return errorResponse('A local session requires an ollama/* model', 400)
+      return turnErrorResponse('A local session requires an ollama/* model', 400)
     }
     if (session?.agent === 'api' && isOllama) {
       finishTurnFailure({ error: 'An api session cannot use an ollama/* model', model })
-      return errorResponse('An api session cannot use an ollama/* model', 400)
+      return turnErrorResponse('An api session cannot use an ollama/* model', 400)
     }
     // CLI capabilities come from the registered adapter; API/Ollama keep their transport.
     if (!cliAdapter) await waitForChatWork(ensureCatalogLoaded(), signal)
@@ -1715,7 +1729,7 @@ async function handleApiChat(
         const ocrError = `The model "${model}" does not support image input, and OCR could not read "${f.filename}". Choose a vision-capable model (e.g. a Claude, GPT-4o, or Gemini model), or remove the image and continue with text only.`
         cliImages?.cleanup()
         finishTurnFailure({ error: ocrError, model })
-        return errorResponse(ocrError, 422)
+        return turnErrorResponse(ocrError, 422)
       }
     }
     const inbound = session ? listUnconsumedInbound(session.id) : []
@@ -1980,7 +1994,7 @@ async function handleApiChat(
             contextWindow: result.contextWindow,
           })
           result.afterSuccess?.()
-          return jsonResponse({
+          return turnJsonResponse({
             text: responseText,
             ...(documents ? { documents } : {}),
             model: result.resultLabel,
@@ -2021,7 +2035,7 @@ async function handleApiChat(
           outputTokens: 0,
           provider: 'ollama',
         })
-        return jsonResponse({
+        return turnJsonResponse({
           text: responseText,
           model: resp.model,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
@@ -2075,7 +2089,7 @@ async function handleApiChat(
         // R.5 — return directo (no throw): sin esto el catch general nunca lo
         // ve y el turno queda 'pending' huérfano, nadie lo resuelve jamás.
         finishTurnFailure({ error: contextError, model })
-        return errorResponse(contextError, 422)
+        return turnErrorResponse(contextError, 422)
       }
       recordInjected(lessons.map((lesson) => lesson.id))
       // Mes 22/E.1 — mismo fix que harness.ts: `knownMaxOutputTokensFor` (0 =
@@ -2169,7 +2183,7 @@ async function handleApiChat(
           outputTokens: result.outputTokens,
           readAudit,
         })
-        return jsonResponse({
+        return turnJsonResponse({
           text: responseText,
           model,
           toolCalls: result.toolCallsExecuted,
@@ -2206,7 +2220,7 @@ async function handleApiChat(
         inputTokens: resp.inputTokens,
         outputTokens: resp.outputTokens,
       })
-      return jsonResponse({
+      return turnJsonResponse({
         text: responseText,
         model: resp.model,
         ocrUsed: ocrUsed.length ? ocrUsed : undefined,
@@ -2249,13 +2263,13 @@ async function handleApiChat(
           console.warn('[chat] could not persist turn failure', commitError)
         }
       }
-      return errorResponse(failure, 500)
+      return turnErrorResponse(failure, 500)
     }
     if (!session || !activeTurnId) throw error
     if (session.agent === 'claude') clearClaudeChatSession(session.id)
     if (getTurn(activeTurnId)?.status === 'interrupted') {
       clearLiveText(session.id, activeTurnId)
-      return jsonResponse({ interrupted: true })
+      return turnJsonResponse({ interrupted: true })
     }
     const live = getLiveText(session.id)
     const text = live?.turnId === activeTurnId ? live.text : ''
@@ -2268,7 +2282,7 @@ async function handleApiChat(
       model,
     })
     clearLiveText(session.id, activeTurnId)
-    return jsonResponse({ text, model, stopped: true })
+    return turnJsonResponse({ text, model, stopped: true })
   } finally {
     if (isCut && session && activeTurnId) {
       try {

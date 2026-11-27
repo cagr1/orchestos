@@ -299,6 +299,7 @@ describe('chat API mapping', () => {
         {
           id: 'turn-1',
           status: 'completed',
+          settled: { outcome: 'completed', reason: null },
           createdAt: '',
           updatedAt: '',
           error: null,
@@ -353,7 +354,11 @@ describe('chat API mapping', () => {
       pending: false,
       events: [],
     })
-    expect(detailed[0]).toMatchObject({ reasoning: ['inspect repo'] })
+    expect(detailed[0]).toMatchObject({
+      reasoning: ['inspect repo'],
+      turnId: 'turn-1',
+      settled: { outcome: 'completed', reason: null },
+    })
     expect(detailed[0]?.steps?.map((step) => step.seq)).toEqual([0, 1, 2])
     expect(detailed[0]?.steps?.[2]).toMatchObject({
       tool: 'command',

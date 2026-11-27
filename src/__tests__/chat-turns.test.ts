@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildChatTranscript } from '../dashboard/handlers/chat.ts'
+import { turnSettled } from '../db/chat-turns.ts'
 
 async function runIsolated(body: string): Promise<Record<string, unknown>> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-chat-turns-'))
@@ -375,4 +376,21 @@ it('AUD.24 renews only a pending lease with a live matching owner', async () => 
     expiry: '2000-01-01T00:00:00.000Z',
     finalized: false,
   })
+})
+
+describe('RUN.3.1 — turnSettled', () => {
+  it('keeps pending unsettled even if its lease expired', () => {
+    const turn = { status: 'pending' as const, error: null, owner_expires_at: '2000-01-01' }
+    expect(turnSettled(turn)).toBeNull()
+  })
+
+  for (const status of ['completed', 'failed', 'cancelled', 'interrupted'] as const) {
+    it(`derives ${status} with the persisted reason`, () => {
+      expect(turnSettled({ status, error: null })).toEqual({ outcome: status, reason: null })
+      expect(turnSettled({ status, error: 'stored reason' })).toEqual({
+        outcome: status,
+        reason: 'stored reason',
+      })
+    })
+  }
 })

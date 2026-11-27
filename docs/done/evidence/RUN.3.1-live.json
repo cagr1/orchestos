@@ -1,0 +1,100 @@
+{
+  "item": "RUN.3.1",
+  "gates": [
+    {
+      "command": "bun run typecheck",
+      "exitCode": 0,
+      "rawOutput": "/tmp/RUN.3.1-typecheck-r3.log"
+    },
+    {
+      "command": "bun run lint",
+      "exitCode": 0,
+      "rawOutput": "/tmp/RUN.3.1-lint-final.log"
+    },
+    {
+      "command": "bun run test:coverage",
+      "exitCode": 0,
+      "rawOutput": "/tmp/RUN.3.1-coverage.log",
+      "tests": 3264,
+      "failures": 0,
+      "functionsPercent": 80.98,
+      "linesPercent": 67.83
+    },
+    {
+      "command": "bun run build:app",
+      "exitCode": 0,
+      "rawOutput": "/tmp/RUN.3.1-build.log"
+    },
+    {
+      "command": "ORCHESTOS_CLAUDE_USAGE_LIVE=0 OPENROUTER_API_KEY=test-key bun run gate:evidence -- --label run.3.1-browser -- bun /tmp/RUN.3.1-browser.ts",
+      "exitCode": 0,
+      "rawOutput": "/tmp/RUN.3.1-browser-r3.log"
+    },
+    {
+      "command": "ORCHESTOS_CLAUDE_USAGE_LIVE=0 OPENROUTER_API_KEY=test-key bun run gate:evidence -- --label run.3.1-dev-browser -- bun /tmp/RUN.3.1-dev-browser.ts",
+      "exitCode": 0,
+      "rawOutput": "/tmp/RUN.3.1-dev-browser-r2.log"
+    }
+  ],
+  "browser": {
+    "chat": {
+      "liveSettled": null,
+      "selector": "[data-turn-id=\"0a721956-c1f3-423a-81a1-b383356d7449\"][data-settled=\"completed\"]",
+      "count": 1,
+      "payload": {
+        "text": "RUN.3.1 persisted answer",
+        "model": "mock/orchestrator",
+        "taskSuggestion": {
+          "isTask": false,
+          "reason": ""
+        },
+        "autoTask": null,
+        "autoTaskSkipped": false,
+        "turnId": "0a721956-c1f3-423a-81a1-b383356d7449",
+        "settled": {
+          "outcome": "completed",
+          "reason": null
+        }
+      },
+      "pageErrors": []
+    },
+    "dev": {
+      "selector": "[data-turn-id=\"d0df69ae-45f4-457d-a383-e690027e1233\"][data-settled=\"completed\"]",
+      "count": 1,
+      "payload": {
+        "text": "RUN.3.1 persisted answer",
+        "model": "mock/orchestrator",
+        "taskSuggestion": {
+          "isTask": false,
+          "reason": ""
+        },
+        "autoTask": null,
+        "autoTaskSkipped": false,
+        "turnId": "d0df69ae-45f4-457d-a383-e690027e1233",
+        "settled": {
+          "outcome": "completed",
+          "reason": null
+        }
+      },
+      "pageErrors": []
+    }
+  },
+  "screenshots": {
+    "inspected": true,
+    "temporaryFilesRemoved": true
+  },
+  "selector": "[data-turn-id=\"<turnId>\"][data-settled=\"<outcome>\"]",
+  "newTests": [
+    "turnSettled: pending, completed, failed, cancelled, interrupted",
+    "HTTP: failed persistence, persisted provider failure, cancelled, interrupted"
+  ],
+  "expandedTests": [
+    "HTTP success and replay include turnId + settled",
+    "HTTP 500 rollback reports DB settled null",
+    "turn-status cancelled returns none",
+    "timeline pending/failed settled",
+    "client mapping keeps turnId and settled"
+  ],
+  "priorChangesUntouched": ["PLAN.md", "docs/specs/RUN.3.1.md"],
+  "review": "Implementaci\u00f3n del ejecutor; pendiente revisi\u00f3n independiente del cerebro."
+}

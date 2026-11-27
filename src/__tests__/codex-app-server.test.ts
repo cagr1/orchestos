@@ -1583,6 +1583,7 @@ test('CHAT.3 CI.11 userMessage items preserve the live waiting phase and no-resp
             const turn: TimelineTurn = {
               id: 'turn',
               status: 'pending',
+              settled: null,
               error: null,
               createdAt: '2026-10-25T10:00:00Z',
               updatedAt: '2026-10-25T10:00:00Z',

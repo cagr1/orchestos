@@ -123,7 +123,14 @@ export interface CliModelCatalog {
   label?: string
 }
 
+export type ChatTurnSettled = null | {
+  outcome: 'completed' | 'failed' | 'cancelled' | 'interrupted'
+  reason: string | null
+}
+
 export interface ChatSendResponse {
+  turnId?: string
+  settled?: ChatTurnSettled
   documents?: { name: string; path: string; size: number }[]
   text: string
   stopped?: boolean
@@ -175,6 +182,7 @@ export interface TimelineStep {
 }
 
 export interface TimelineTurn {
+  settled: ChatTurnSettled
   id: string
   status: string
   createdAt: string
@@ -303,6 +311,7 @@ export function mapMessage(row: ChatMessageRow): ChatMessage {
     role: row.role,
     content: row.content,
     stopped: row.stopped,
+    turnId: row.turnId ?? undefined,
     timestamp: toTimestamp(row.createdAt),
     model: row.model ?? undefined,
     taskHeld: row.taskHeld || undefined,
@@ -358,6 +367,8 @@ export function attachTurnDetails(
       }))
     return {
       ...message,
+      turnId,
+      settled: turn.settled,
       steps,
       notices: steps.flatMap((step) =>
         step.notice && step.notice.kind !== 'no-response' ? [step.notice] : [],

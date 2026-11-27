@@ -385,6 +385,26 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   fin = `agent_settled`) Evidencia: flujos que esperan una respuesta HTTP y mueren con la espera huérfana
   (`chat-retry-report` 2026-11-25, `read-boundary` 2026-11-27, `project-isolation` en USO.41). Alcance: verificar si
   el chat y las tareas exponen un evento/estado terminal único y si los flujos lo usan; diagnóstico antes de cambiar.
+  2026-11-27: diagnóstico en `docs/specs/RUN.3-diagnostico.md` — no hay contrato terminal uniforme. Se ejecuta en
+  RUN.3.1 (chat), RUN.3.2 (lanzamiento de tarea), RUN.3.3 (los tres gates de los incidentes), RUN.3.4 (el resto).
+- [x] **RUN.3.1 — `settled` por turno de chat.** (GO de Carlos 2026-11-27) `settled: null | {outcome, reason}` en
+  `/timeline`, `/turn-status` y la respuesta de `POST /api/chat`, con `turnId`; `cancelled` deja de leerse como
+  `pending`; la burbuja del asistente lleva `data-turn-id` y `data-settled`.
+  Hecho: `turnSettled()` en `src/db/chat-turns.ts`; `/timeline` suma `settled` por turno; `/turn-status` trata
+  `cancelled` como `none`; todo `return` de `POST /api/chat` con turno reclamado lleva `turnId` + `settled` leído de
+  la DB. Burbuja en Chat y Dev: `[data-turn-id="<id>"][data-settled="<outcome>"]`; el texto vivo no lo lleva. 9
+  tests nuevos; cobertura 3264 pass. Revisado por el cerebro: diff leído, tsc, 86 tests focalizados y lint verdes.
+  Gate en vivo: navegador (Chromium) en Chat y Dev vía gate:evidence: selector data-settled=completed por turnId
+  — `docs/done/evidence/RUN.3.1-live.json`
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/RUN.3.1.md
+- [ ] **RUN.3.2 — `settled` por lanzamiento de tarea.** (GO de Carlos 2026-11-27) Un lanzamiento tiene ID y resultado
+  durable (`completed|failed|blocked|interrupted` + motivo) escrito una vez al cerrarse; `pending` por presupuesto o
+  árbol sucio sale como `blocked`, no como espera. Va después de RUN.3.1.
+- [ ] **RUN.3.3 — Migrar `chat-retry-report`, `read-boundary`, `project-isolation` a `settled`.** (GO de Carlos
+  2026-11-27) Esperan el `settled` del turno/lanzamiento, no el POST ni la prosa visible. Va después de RUN.3.2.
+- [ ] **RUN.3.4 — Migrar el resto de flujos a `settled`.** (GO de Carlos 2026-11-27) Los que aceptan cambio de
+  intento (`auto-flow`, `runs-graph`, `custom-cli`, `restart-mid-run`) y los de prosa/inactividad agregada
+  (lista en el diagnóstico § 3). Va después de RUN.3.3.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

@@ -2,7 +2,7 @@ import type { RunFailureKind } from '../../../../db/runs'
 import type { TaskClass } from '../../../../router/classify'
 import type { CliNotice } from '../../../../run/executors/cli-failure'
 import type { CutReport } from '../../../cut-check.ts'
-import type { TimelineStep } from '../api/chat'
+import type { ChatTurnSettled, TimelineStep } from '../api/chat'
 export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
 
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
@@ -200,6 +200,8 @@ export interface ProjectContext {
 }
 
 export interface ChatMessage {
+  turnId?: string
+  settled?: ChatTurnSettled
   sessionMessage?: {
     id: string
     toSessionId: string

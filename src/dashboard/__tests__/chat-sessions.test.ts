@@ -1050,13 +1050,14 @@ describe('CC.2 — chat sessions backend', () => {
       const { db } = await import('./src/db/sqlite.ts')
       const handlers = await import('./src/dashboard/handlers/chat-sessions.ts')
       const sessions = await import('./src/db/chat-sessions.ts')
-      const { beginTurn, commitTurnFailure, commitTurnSuccess } = await import('./src/db/chat-turns.ts')
+      const { beginTurn, commitTurnFailure, commitTurnSuccess, commitTurnCancelled } = await import('./src/db/chat-turns.ts')
       runMigrations()
       const noTurns = sessions.createChatSession({ agent: 'api' })
       const pending = sessions.createChatSession({ agent: 'api' })
       const expired = sessions.createChatSession({ agent: 'api' })
       const failed = sessions.createChatSession({ agent: 'api' })
       const completed = sessions.createChatSession({ agent: 'api' })
+      const cancelled = sessions.createChatSession({ agent: 'api' })
       const start = (sessionId, requestKey, leaseMs) => beginTurn({
         sessionId, projectId: null, requestKey, inputFingerprint: requestKey + '-input', owner: 'worker-a', leaseMs,
       })
@@ -1076,6 +1077,8 @@ describe('CC.2 — chat sessions backend', () => {
         },
         userContent: 'hola', assistantContent: 'respuesta', envelope: { text: 'respuesta' },
       })
+      const cancelledTurn = start(cancelled.id, 'cancelled-key', 60_000)
+      commitTurnCancelled({ turnId: cancelledTurn.turn.id, owner: 'worker-a', userContent: 'stop', text: 'partial', model: 'test' })
       const turnStatus = async (id) => {
         const response = handlers.handleApiChatSessionTurnStatus(new URL('http://localhost/api/chat/sessions/' + id + '/turn-status'))
         return { status: response.status, body: await response.json() }
@@ -1086,7 +1089,7 @@ describe('CC.2 — chat sessions backend', () => {
       process.stdout.write(JSON.stringify({
         missing, invalid, noTurns: await turnStatus(noTurns.id), pending: await turnStatus(pending.id),
         pendingTurnId: pendingTurn.turn.id, expired: await turnStatus(expired.id),
-        failed: await turnStatus(failed.id), completed: await turnStatus(completed.id),
+        failed: await turnStatus(failed.id), completed: await turnStatus(completed.id), cancelled: await turnStatus(cancelled.id),
       }))
       db.close()
     `)
@@ -1107,6 +1110,7 @@ describe('CC.2 — chat sessions backend', () => {
       body: { kind: 'failed', error: 'provider unavailable exactly' },
     })
     expect(result.completed).toEqual({ status: 200, body: { kind: 'none' } })
+    expect(result.cancelled).toEqual({ status: 200, body: { kind: 'none' } })
   })
 
   it('auto-created chat tasks defer model choice to the Executor role when no rule matches', async () => {
@@ -1433,10 +1437,14 @@ describe('CC.2 — chat sessions backend', () => {
       db.run('UPDATE console_commands SET created_at = ? WHERE id = ?', ['2026-01-01T00:00:02.000Z', command.id])
       const response = handleApiChatSessionTimeline(new URL('http://localhost/api/chat/sessions/' + session.id + '/timeline'))
       const body = await response.json()
-      process.stdout.write(JSON.stringify({ status: response.status, kinds: body.events.map((event) => event.kind), step: body.turns[0].steps[0], command: body.commands[0], live: body.live }))
+      turns.commitTurnFailure({ turnId: claimed.turn.id, owner: 'test', error: 'timeline failure' })
+      const failed = await handleApiChatSessionTimeline(new URL('http://localhost/api/chat/sessions/' + session.id + '/timeline')).json()
+      process.stdout.write(JSON.stringify({ pendingSettled: body.turns[0].settled, failedSettled: failed.turns[0].settled, status: response.status, kinds: body.events.map((event) => event.kind), step: body.turns[0].steps[0], command: body.commands[0], live: body.live }))
       db.close()
     `)
     expect(result.status).toBe(200)
+    expect(result.pendingSettled).toBeNull()
+    expect(result.failedSettled).toEqual({ outcome: 'failed', reason: 'timeline failure' })
     expect(result.kinds).toEqual(['turn', 'step', 'command'])
     expect(result.step).toMatchObject({ tool: 'Bash', exitCode: 0, ok: true })
     expect(result.command).toMatchObject({ cmd: 'ls', exitCode: 0 })

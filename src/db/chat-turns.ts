@@ -26,6 +26,15 @@ interface ChatTurnRecord {
   updated_at: string
 }
 
+export type ChatTurnSettled = null | {
+  outcome: Exclude<ChatTurnStatus, 'pending'>
+  reason: string | null
+}
+
+export function turnSettled(turn: Pick<ChatTurnRecord, 'status' | 'error'>): ChatTurnSettled {
+  return turn.status === 'pending' ? null : { outcome: turn.status, reason: turn.error ?? null }
+}
+
 interface BeginTurnInput {
   sessionId: string
   projectId: string | null

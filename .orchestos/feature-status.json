@@ -268,6 +268,38 @@
       "closedDate": null
     },
     {
+      "id": "RUN.3.1",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "`settled` por turno de chat",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "RUN.3.2",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "`settled` por lanzamiento de tarea",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "RUN.3.3",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Migrar `chat-retry-report`, `read-boundary`, `project-isolation` a `settled`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "RUN.3.4",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Migrar el resto de flujos a `settled`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

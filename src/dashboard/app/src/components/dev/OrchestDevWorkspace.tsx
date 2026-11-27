@@ -761,6 +761,12 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
             }
             layout={false}
             data-dev-assistant-message
+            data-turn-id={exchange.assistantMessage?.turnId ?? undefined}
+            data-settled={
+              exchange.assistantMessage?.turnId === exchange.turn?.id
+                ? exchange.turn?.settled?.outcome
+                : undefined
+            }
             className="max-w-full w-full select-text"
             actions={
               assistantCopy && (

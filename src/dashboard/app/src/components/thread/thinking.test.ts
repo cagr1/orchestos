@@ -24,6 +24,7 @@ function turn(steps: TimelineStep[], over: Partial<TimelineTurn> = {}): Timeline
   return {
     id: 't1',
     status: 'pending',
+    settled: null,
     createdAt: '2026-10-13 10:00:00',
     updatedAt: '2026-10-13 10:00:12',
     error: null,

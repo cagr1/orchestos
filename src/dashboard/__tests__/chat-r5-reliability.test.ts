@@ -117,21 +117,25 @@ it('rejects concurrent HTTP requests and replays committed results without provi
     const response = await first
     const payload = await response.json()
     const replay = await request('first')
-    console.log(JSON.stringify({ statuses: [response.status, duplicate.status, other.status, replay.status], before, after: calls, same: JSON.stringify(payload) === JSON.stringify(await replay.json()), turns: db.query('SELECT COUNT(*) AS n FROM chat_turns').get().n }))
+    console.log(JSON.stringify({ payload, statuses: [response.status, duplicate.status, other.status, replay.status], before, after: calls, same: JSON.stringify(payload) === JSON.stringify(await replay.json()), turns: db.query('SELECT COUNT(*) AS n FROM chat_turns').get().n }))
   `)
   expect(result.statuses).toEqual([200, 409, 409, 200])
   expect(result.after).toBe(result.before)
   expect(result.same).toBe(true)
   expect(result.turns).toBe(1)
+  expect(result.payload.turnId).toEqual(expect.any(String))
+  expect(result.payload.settled).toEqual({ outcome: 'completed', reason: null })
 })
 
 it('returns an HTTP error and rolls back run/messages when the final write fails', async () => {
   const result = await isolated(`
     db.exec("CREATE TRIGGER fail_messages BEFORE INSERT ON chat_messages BEGIN SELECT RAISE(ABORT, 'injected message failure'); END")
     const response = await request('rollback')
-    console.log(JSON.stringify({ status: response.status, runs: db.query('SELECT COUNT(*) AS n FROM runs').get().n, messages: db.query('SELECT COUNT(*) AS n FROM chat_messages').get().n }))
+    console.log(JSON.stringify({ payload: await response.json(), status: response.status, runs: db.query('SELECT COUNT(*) AS n FROM runs').get().n, messages: db.query('SELECT COUNT(*) AS n FROM chat_messages').get().n }))
   `)
   expect(result.status).toBeGreaterThanOrEqual(500)
+  expect(result.payload.turnId).toEqual(expect.any(String))
+  expect(result.payload.settled).toBeNull()
   expect(result.runs).toBe(0)
   expect(result.messages).toBe(0)
 })
@@ -244,3 +248,48 @@ it('chat rejects invalid approvalMode before calling providers or creating tasks
   `)
   expect(result).toEqual({ statuses: [400, 400, 400, 400, 400], calls: 0, tasks: 0 })
 })
+
+it('reports pending from the DB when best-effort failure persistence fails', async () => {
+  const result = await isolated(`
+    db.exec("CREATE TRIGGER fail_turn BEFORE UPDATE OF status ON chat_turns BEGIN SELECT RAISE(ABORT, 'injected turn failure'); END")
+    globalThis.fetch = async () => { throw new Error('injected provider failure') }
+    const response = await request('failure-write')
+    const payload = await response.json()
+    console.log(JSON.stringify({ status: response.status, payload, turn: turns.getTurn(payload.turnId) }))
+  `)
+  expect(result.status).toBe(502)
+  expect(result.payload.turnId).toBe(result.turn.id)
+  expect(result.turn.status).toBe('pending')
+  expect(result.payload.settled).toBeNull()
+})
+
+it('returns the persisted failed result after a provider error', async () => {
+  const result = await isolated(`
+    globalThis.fetch = async () => { throw new Error('injected provider failure') }
+    const response = await request('provider-failed')
+    const payload = await response.json()
+    console.log(JSON.stringify({ status: response.status, payload, turn: turns.getTurn(payload.turnId) }))
+  `)
+  expect(result.status).toBe(502)
+  expect(result.payload.turnId).toBe(result.turn.id)
+  expect(result.payload.settled).toEqual({ outcome: 'failed', reason: result.turn.error })
+})
+
+for (const outcome of ['cancelled', 'interrupted'] as const) {
+  it(`returns the persisted ${outcome} result after abort`, async () => {
+    const result = await isolated(`
+      const registry = await import('./src/dashboard/handlers/chat-turn-registry.ts')
+      beforeResponse = async () => {
+        ${outcome === 'cancelled' ? 'registry.stopActiveChatTurn(session.id)' : 'const log = console.log; console.log = () => {}; try { registry.interruptActiveChatTurns() } finally { console.log = log }'}
+        throw new Error('aborted fixture')
+      }
+      const response = await request('abort')
+      const payload = await response.json()
+      console.log(JSON.stringify({ status: response.status, payload, turn: turns.getTurn(payload.turnId) }))
+    `)
+    expect(result.status).toBe(200)
+    expect(result.payload.turnId).toBe(result.turn.id)
+    expect(result.payload.settled).toEqual({ outcome, reason: result.turn.error })
+    expect(result.payload[outcome === 'cancelled' ? 'stopped' : 'interrupted']).toBe(true)
+  })
+}

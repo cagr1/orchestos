@@ -497,6 +497,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                       <ChatMessage
                         key={msg.id}
                         from="assistant"
+                        data-turn-id={msg.turnId}
+                        data-settled={msg.turnId ? msg.settled?.outcome : undefined}
                         time={msg.timestamp}
                         {...motionProps(entranceOf(msg.id))}
                         data-entered={entranceOf(msg.id)}

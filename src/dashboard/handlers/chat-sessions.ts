@@ -30,6 +30,7 @@ import {
   hasActiveTurn,
   listChatTurns,
   sessionHasPersistentWork,
+  turnSettled,
 } from '../../db/chat-turns.ts'
 import { insertConsoleCommand, listConsoleCommands } from '../../db/console-commands.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
@@ -452,6 +453,7 @@ export function handleApiChatSessionTimeline(url: URL): Response {
     turns: turns.map((turn) => ({
       id: turn.id,
       status: turn.status,
+      settled: turnSettled(turn),
       createdAt: turn.created_at,
       updatedAt: turn.updated_at,
       error: turn.error,
@@ -581,7 +583,9 @@ export function handleApiChatSessionTurnStatus(url: URL): Response {
       userContent: turn.user_content,
       hasAttachments: turn.has_attachments === 1,
     } satisfies ChatTurnStatusRow)
-  if (turn.status === 'completed') return jsonResponse({ kind: 'none' } satisfies ChatTurnStatusRow)
+  // Completed and cancelled turns already have their persisted text in chat_messages.
+  if (turn.status === 'completed' || turn.status === 'cancelled')
+    return jsonResponse({ kind: 'none' } satisfies ChatTurnStatusRow)
   if (turn.status === 'failed') {
     return jsonResponse({ kind: 'failed', error: turn.error } satisfies ChatTurnStatusRow)
   }
