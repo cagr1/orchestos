@@ -14,14 +14,11 @@ y ramas locales `cagr1/research-agro-demo`, `cagr1/fix-dashboard-ui-bugs` borrad
 
 Siguiente, en orden (GO de Carlos a A→B→C del análisis de pi.dev; B y C esperan GO de su propuesta):
 1. **Leer el resultado de la nocturna** (startup-guard) y resolver lo rojo con triage (`AGENTS.md`).
-2. **GOV.5** — propuesta en `docs/specs/GOV.5-analisis.md`: comando `bun run item:close` (valida todo junto, genera
-   líneas de cierre/evidencia/procedencia, reconcilia una vez, commit por rutas) + podas (formato exacto,
-   `.some()` de live-gate, preflight sin ítem para diagnóstico, hook del cerebro por tamaño de diff, ledger). Se
-   quedan secretos, tsc, candado, evidencia y `plan:render --check`. **Esperando GO de Carlos.**
+2. ~~GOV.5~~ cerrado (`0997eef1` podas, `ace4e988` `item:close`).
 3. **RUN.3** — diagnóstico en `docs/specs/RUN.3-diagnostico.md`: `settled: null | {outcome, reason}` por turno y por
    lanzamiento; `pending` hoy también significa "terminó sin éxito" (`src/cli.ts:1356`); `/turn-status` trata
    `cancelled` como `pending`. Migrar primero `chat-retry-report`, `read-boundary`, `project-isolation`.
-   **Esperando GO de Carlos.**
+   **GO de Carlos a la propuesta (2026-11-27, misma sesión): empezar aquí**, partido en sub-ítems como GOV.5.
 4. ~~USO.41~~ cerrado: era producto (pestaña activa antes de `listProjects()` → lo escrito al lanzar se perdía).
    Los 8 flujos de lanzamiento sin id de sesión a mano (`auto-flow`, `chat-settings`, …) se ven en la nocturna.
 
@@ -31,7 +28,7 @@ ya no tiene que ir al final de la línea; la ruta de evidencia puede ir en cualq
 ítem abierto en PLAN (preflight). Intermitente sin causa: `SQLITE_IOERR_VNODE` (`run-steps.ts:40`) tumbó el
 dashboard una vez en `chat-retry-report`; si reaparece, diagnosticar.
 
-Pendiente de Carlos: GO de GOV.5 y RUN.3; ¿borrar la rama remota `origin/cagr1/fix-dashboard-ui-bugs`?; ¿USO.52
+GOV.5 cerrado (`0997eef1`, `ace4e988`): cerrar con `bun run item:close`. Pendiente de Carlos: ¿borrar la rama remota `origin/cagr1/fix-dashboard-ui-bugs`?; ¿USO.52
 (salida declarada faltante no revierte lo escrito) y USO.53 (el ejecutor puede preguntar/escalar)?; 4 worktrees
 `sync-*` en MemoriesMD (uno con cambios sin commitear en `projects/orchestos/decisions.md`, `estado.md`).
 
