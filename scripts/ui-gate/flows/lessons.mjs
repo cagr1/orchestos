@@ -6,7 +6,7 @@ import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 import { run, writeGateRoles } from '../lib.mjs'
 
 async function waitForComposerReady(page) {
-  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const button = page.locator('button[aria-label="Send message"]:visible').last()
   const deadline = Date.now() + 30_000
   while (Date.now() < deadline) {
     if (await button.isEnabled().catch(() => false)) return
@@ -156,7 +156,7 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
     .first()
     .click()
   await newChat.getByRole('button', { name: 'Start Chat', exact: true }).click()
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await step('chat composer visible', await visible(composer), 'composer after Start Chat')
 
   await sendMessage({ page, composer, text: 'Please note the lesson.', step })

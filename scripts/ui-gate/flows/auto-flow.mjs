@@ -306,7 +306,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
   )
   const questionSession = (questionSessionResponse.data ?? [])[0]
   if (!questionSession) throw new Error('Codex chat session was not created')
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await sendMessage({
     page,
     composer,

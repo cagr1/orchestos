@@ -175,8 +175,8 @@
       "id": "USO.51",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
-      "title": "El chat no puede leer carpetas del usuario fuera del proyecto",
-      "status": "open",
+      "title": "El chat no puede leer una ruta que el usuario le da fuera del proyecto",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -224,6 +224,30 @@
       "sprint": "Etapa 2 — Uso real",
       "block": null,
       "title": "`ui:gate dev-session-tabs` y `project-isolation` rojos en `HEAD`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CI.86",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Reanudar las nocturnas de ui-gates",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "GOV.5",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Cerrar un ítem cuesta más que hacerlo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "RUN.3",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Fin de turno explícito en chat y gates",
       "status": "open",
       "closedDate": null
     },

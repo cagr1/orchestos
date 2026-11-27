@@ -46,7 +46,7 @@ async function selectClaudeHaiku(page) {
 }
 
 async function sendTurn(page, message, timeout = 180_000) {
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
   const responsePromise = page.waitForResponse(
@@ -54,7 +54,7 @@ async function sendTurn(page, message, timeout = 180_000) {
       response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
     { timeout },
   )
-  await page.getByRole('button', { name: 'Send message', exact: true }).last().click()
+  await page.locator('button[aria-label="Send message"]:visible').last().click()
   const response = await responsePromise
   if (!response.ok()) throw new Error(`/api/chat returned HTTP ${response.status()}`)
   const reply = page.locator('div.prose').last()

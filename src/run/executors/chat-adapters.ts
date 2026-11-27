@@ -42,6 +42,7 @@ export interface CliRoleResult {
 
 export interface CliTurnInput extends CliRoleInput {
   cut?: boolean
+  readDirs?: string[]
   generalChat?: boolean
   signal?: AbortSignal
   hasProjectContext: boolean
@@ -177,6 +178,7 @@ registerCliChatAdapter('claude', {
           i.signal,
           i.generalChat,
           i.cut,
+          i.readDirs,
         )
       let result: Awaited<ReturnType<typeof runTurn>>
       try {

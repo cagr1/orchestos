@@ -40,7 +40,7 @@ async function waitForTaskExitPending(api, projectId, taskId) {
 }
 
 async function waitForComposerReady(page) {
-  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const button = page.locator('button[aria-label="Send message"]:visible').last()
   const startedAt = Date.now()
   const deadline = startedAt + 30_000
   while (Date.now() < deadline) {
@@ -180,7 +180,7 @@ export default async function chatTurnDetails({
     'popover closed after Escape/click outside',
   )
 
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   const tools = page.locator('[data-thread-tools]').first()
   const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
   const session = (Array.isArray(sessions.data) ? sessions.data : [])[0]

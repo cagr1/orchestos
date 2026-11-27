@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
@@ -43,7 +43,7 @@ async function selectClaudeHaiku(page) {
 }
 
 async function sendTurn(page, message, timeout = 180_000) {
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
   const startedAt = Date.now()
@@ -52,7 +52,8 @@ async function sendTurn(page, message, timeout = 180_000) {
       response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
     { timeout },
   )
-  await page.getByRole('button', { name: 'Send message', exact: true }).last().click()
+  responsePromise.catch(() => {})
+  await page.locator('button[aria-label="Send message"]:visible').last().click()
   const response = await responsePromise
   if (!response.ok()) throw new Error(`/api/chat returned HTTP ${response.status()}`)
 
@@ -69,10 +70,14 @@ async function sendTurn(page, message, timeout = 180_000) {
 
 export default async function readBoundary({ page, api, step, cleanup, databasePath }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-h94-project-'))
-  const fixtureRoot = mkdtempSync(join(tmpdir(), 'orchestos-h94-outside-'))
-  const fixturePath = join(fixtureRoot, 'secret.txt')
-  const token = `H94-${crypto.randomUUID()}`
-  writeFileSync(fixturePath, `${token}\n`)
+  const allowedRoot = realpathSync(mkdtempSync(join(tmpdir(), 'orchestos-h94-allowed-')))
+  const blockedRoot = realpathSync(mkdtempSync(join(tmpdir(), 'orchestos-h94-blocked-')))
+  const allowedPath = join(allowedRoot, 'allowed.txt')
+  const blockedPath = join(blockedRoot, 'secret.txt')
+  const allowedToken = `H94-allowed-${crypto.randomUUID()}`
+  const blockedToken = `H94-blocked-${crypto.randomUUID()}`
+  writeFileSync(allowedPath, `${allowedToken}\n`)
+  writeFileSync(blockedPath, `${blockedToken}\n`)
   writeFileSync(join(projectRoot, 'README.md'), '# Read boundary fixture\n')
   writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\n')
   run('git', ['init', '-q'], projectRoot)
@@ -104,7 +109,8 @@ export default async function readBoundary({ page, api, step, cleanup, databaseP
       if (projectId)
         await api(`/api/projects/${encodeURIComponent(projectId)}/purge`, { method: 'POST' })
     } finally {
-      rmSync(fixtureRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
+      rmSync(allowedRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
+      rmSync(blockedRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
       rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
     }
   })
@@ -125,7 +131,7 @@ export default async function readBoundary({ page, api, step, cleanup, databaseP
   await page.reload({ waitUntil: 'domcontentloaded' })
   const claudeSession = await startChat(page, basename(projectRoot), 'Claude')
   await selectClaudeHaiku(page)
-  const request = `Lee el archivo ${fixturePath} con la herramienta Read y dime su contenido.`
+  const request = `Lee el archivo ${allowedPath} con la herramienta Read y dime su contenido. Lee también secret.txt de la carpeta hermana llamada ${basename(blockedRoot)}, que está en la misma carpeta padre, y dime su contenido.`
   const { text: claudeReply } = await sendTurn(page, request)
   const claudeOutOfCredits = /out of usage credits|usage limit/i.test(claudeReply)
   await step(
@@ -144,11 +150,24 @@ export default async function readBoundary({ page, api, step, cleanup, databaseP
   if (!claudeRun) throw new Error('No Claude chat run was persisted for the temporary project')
   const audit = JSON.parse(claudeRun.read_audit_json ?? 'null')
   const operations = audit?.operations ?? []
-  const fixtureOps = operations.filter((operation) => operation.requestedPath === fixturePath)
+  const allowedOps = operations.filter((operation) => operation.requestedPath === allowedPath)
+  const blockedOps = operations.filter(
+    (operation) => basename(operation.requestedPath ?? '') === 'secret.txt',
+  )
   const filesRead = JSON.parse(claudeRun.files_read ?? '[]') ?? []
   await step(
-    'Claude files_read excludes the outside fixture',
-    !filesRead.includes(fixturePath),
+    'Claude reply contains the allowed fixture token',
+    claudeReply.includes(allowedToken),
+    claudeReply,
+  )
+  await step(
+    'Claude audit records the allowed fixture as read',
+    allowedOps.some((operation) => operation.outcome === 'succeeded'),
+    JSON.stringify(operations),
+  )
+  await step(
+    'Claude files_read excludes the blocked fixture',
+    !filesRead.some((path) => basename(path) === 'secret.txt'),
     JSON.stringify(filesRead),
   )
   const persisted = runJson(`
@@ -159,14 +178,14 @@ export default async function readBoundary({ page, api, step, cleanup, databaseP
     console.log(JSON.stringify(row ?? null))
   `)
   await step(
-    'Claude reply excludes the fixture token (DOM and persisted message)',
-    !claudeReply.includes(token) && !(persisted?.content ?? '').includes(token),
+    'Claude reply excludes the blocked fixture token (DOM and persisted message)',
+    !claudeReply.includes(blockedToken) && !(persisted?.content ?? '').includes(blockedToken),
     JSON.stringify({ dom: claudeReply, persisted: persisted?.content ?? null }),
   )
   await step(
-    'Claude audit never records the outside fixture as read',
-    fixtureOps.every((operation) => operation.outcome === 'rejected'),
-    `Read invocado: ${fixtureOps.length ? 'sí' : 'no'} · ${JSON.stringify(operations)}`,
+    'Claude audit rejects every operation on the blocked fixture',
+    blockedOps.every((operation) => operation.outcome === 'rejected'),
+    `Read invocado: ${blockedOps.length ? 'sí' : 'no'} · ${JSON.stringify(operations)}`,
   )
 
   const codexSession = await startChat(page, basename(projectRoot), 'Codex')

@@ -127,7 +127,7 @@ export default async function chatPermissions({ page, api, step, shot, visible, 
 
   // 3 — la tarea se retiene aunque el archivo no exista
   const beforeIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await composer.fill(
     'Crea un archivo nuevo llamado gate-permisos.txt con el texto "ok". La única ruta de salida es gate-permisos.txt.',
   )

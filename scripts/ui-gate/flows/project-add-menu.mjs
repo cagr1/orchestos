@@ -119,7 +119,7 @@ export default async function projectAddMenu({ page, api, step, shot, visible, h
   async function checkAttachmentPosition(surface) {
     const menu = page.getByRole('menu', { name: 'Attach files', exact: true })
     await visible(menu)
-    const composer = page.locator('textarea').last().locator('..').locator('..')
+    const composer = page.locator('textarea:visible').last().locator('..').locator('..')
     const menuRect = await menu.boundingBox()
     const composerRect = await composer.boundingBox()
     await shot(`attachment-menu-${surface}`)
@@ -156,9 +156,9 @@ export default async function projectAddMenu({ page, api, step, shot, visible, h
   await files.getByRole('option', { name: 'README.md', exact: true }).click()
   await step(
     'project reference inserted in composer',
-    (await page.locator('textarea').last().inputValue()) === '@README.md ',
+    (await page.locator('textarea:visible').last().inputValue()) === '@README.md ',
   )
-  await page.locator('textarea').last().fill('')
+  await page.locator('textarea:visible').last().fill('')
   await attach.click()
   const chooser = page.waitForEvent('filechooser')
   await attachments.getByRole('menuitem', { name: 'Upload from computer', exact: true }).click()

@@ -495,6 +495,7 @@ export function buildClaudeChatArgs(
   mcpOffer?: McpOffer,
   generalChat = false,
   cut = false,
+  readDirs: string[] = [],
 ): string[] {
   const args = [
     '-p',
@@ -532,6 +533,7 @@ export function buildClaudeChatArgs(
     )
   // UI.24.6a — directorio temporal de imágenes adjuntas del turno: lectura solamente.
   if (attachmentsDir && !generalChat) args.push('--add-dir', attachmentsDir)
+  if (!generalChat && !cut) for (const dir of readDirs) args.push('--add-dir', dir)
   if (resumeSessionId) args.push('--resume', resumeSessionId)
   // AT.20/AT.21 — va en cada invocación, también al retomar con --resume.
   if (mcpOffer?.tools.length) args.push(...claudeMcpArgs(mcpOffer))
@@ -581,6 +583,7 @@ export async function runClaudeChat(
   signal?: AbortSignal,
   generalChat = false,
   cut = false,
+  readDirs: string[] = [],
 ): Promise<ClaudeChatResult> {
   const found = findClaudeBinary()
   if (!found) {
@@ -629,6 +632,7 @@ export async function runClaudeChat(
         mcpOffer,
         generalChat,
         cut,
+        readDirs,
       ),
       userMessage,
       timeoutMs,

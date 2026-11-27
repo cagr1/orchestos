@@ -166,7 +166,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
       `turn=${turn} paragraphs=${paragraphs.length} duplicates=${duplicates.length}${evidencePath ? ` evidence=${evidencePath}` : ''}`,
     )
   }
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   const heldPrompt =
     'Modifica nota.ts para añadir al final la línea "export const gate = 1". La única ruta de salida es nota.ts.'
   const beforeIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
@@ -176,7 +176,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   )
   firstTurn.catch(() => {})
   await composer.fill(heldPrompt)
-  await page.getByRole('button', { name: 'Send message', exact: true }).click()
+  await page.locator('button[aria-label="Send message"]:visible').click()
   await (await firstTurn).finished()
   await checkAssistantParagraphs(1)
   const taskCard = page.locator('[data-task-state="held"]').first()
@@ -375,7 +375,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   await composer.fill(
     'Modifica nota.ts para añadir al final la línea "export const sucio = 2". La única ruta de salida es nota.ts.',
   )
-  await page.getByRole('button', { name: 'Send message', exact: true }).click()
+  await page.locator('button[aria-label="Send message"]:visible').click()
   await (await secondTurn).finished()
   await checkAssistantParagraphs(2)
   const secondCard = page.locator('[data-task-state="held"]').last()

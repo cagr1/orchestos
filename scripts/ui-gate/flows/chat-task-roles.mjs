@@ -8,7 +8,7 @@ import { run, writeGateRoles } from '../lib.mjs'
 const FILE = 'notas/hola.md'
 
 async function waitForComposerReady(page) {
-  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const button = page.locator('button[aria-label="Send message"]:visible').last()
   const startedAt = Date.now()
   const deadline = startedAt + 30_000
   while (Date.now() < deadline) {
@@ -112,7 +112,7 @@ export default async function chatTaskRolesFlow({ page, api, step, shot, visible
   await projectButton.click()
 
   const session = await startChat(page, 'Claude', basename(projectRoot))
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await step(
     'composer visible',
     await visible(composer),

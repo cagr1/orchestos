@@ -14,7 +14,7 @@ async function sendTurn(page, composer, message) {
   const previousReplyCount = await page.locator('div.prose').count()
   await composer.fill(message)
   await page
-    .getByRole('button', { name: 'Send message', exact: true })
+    .locator('button[aria-label="Send message"]:visible')
     .last()
     .waitFor({ state: 'visible' })
   const deadline = Date.now() + 180_000
@@ -192,7 +192,7 @@ export default async function chatContext({
 
   const codexSession = await startChat(page, 'Codex', basename(projectRoot))
   await page.getByRole('button', { name: /GPT-6-Luna · medium/i }).waitFor({ state: 'visible' })
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   const codexReply = await sendTurn(page, composer, prompt)
   const codexPrompt = readFileSync(join(captureDir, `chat-prompt-${codexSession.id}.txt`), 'utf8')
   await step(
@@ -227,7 +227,7 @@ export default async function chatContext({
 
   const claudeSession = await startChat(page, 'Claude', basename(projectRoot))
   await selectClaudeHaiku(page)
-  const claudeComposer = page.locator('textarea').last()
+  const claudeComposer = page.locator('textarea:visible').last()
   const claudeReply = await sendTurn(page, claudeComposer, prompt)
   const claudePrompt = readFileSync(join(captureDir, `chat-prompt-${claudeSession.id}.txt`), 'utf8')
   await step(

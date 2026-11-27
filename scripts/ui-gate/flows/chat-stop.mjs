@@ -37,9 +37,9 @@ function sessionState(databasePath, sessionId) {
 }
 
 async function send(page, message) {
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await composer.fill(message)
-  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const button = page.locator('button[aria-label="Send message"]:visible').last()
   await waitFor(async () => await button.isEnabled(), 30_000)
   const request = page.waitForRequest(
     (req) => req.method() === 'POST' && new URL(req.url()).pathname === '/api/chat',
@@ -160,7 +160,7 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
     )
 
     // Enter queues a draft without interrupting the in-flight response.
-    const composer = page.locator('textarea').last()
+    const composer = page.locator('textarea:visible').last()
     await composer.fill('This draft must not interrupt or send')
     let extraPosts = 0
     const countPost = (request) => {
@@ -219,7 +219,7 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
     )
     const mark = page.getByText('Respuesta detenida', { exact: true })
     await step(`${view}: stopped mark visible`, await visible(mark), 'Respuesta detenida')
-    const ready = page.getByRole('button', { name: 'Send message', exact: true }).last()
+    const ready = page.locator('button[aria-label="Send message"]:visible').last()
     await ready.waitFor()
     const messages = await api(`${path}/messages${scope}`, { headers })
     const stopped = messages.data?.find(

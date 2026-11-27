@@ -243,15 +243,22 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador (Playwright) `docs/done/evidence/USO.50-live.json` — `qa-negative` 26/26; el caso
   `unverified` en vivo no se ejercitó (cubierto por unitarios).
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.50.md
-- [ ] **USO.51 — El chat no puede leer carpetas del usuario fuera del proyecto.** (Carlos, 2026-11-23, Agro no leyó
-  `~/Projects/MemoriesMD`) Causa: `external.ts:487-535` solo pasa `--add-dir` del proyecto y adjuntos. Alcance:
-  lista de carpetas de solo lectura por proyecto en Settings → `--add-dir` por cada una; el choque con la frontera
-  ofrece "Autorizar carpeta". Fuera: escritura fuera del proyecto.
-  Debe valer con cualquier CLI: Codex no tiene frontera (`readBoundary: none`) y el prompt base prohíbe leer
-  "private vaults" (`cli-registry.ts:88`), que choca con una carpeta declarada. **Condición de Carlos (2026-11-27):**
-  antes de implementar, investigar cómo lo hacen Orca y T3 (qué se declara, cómo se muestra, qué se bloquea) y
-  proponerle el diseño; sin GO no se implementa. Gate: extender `ui:gate read-boundary` (la carpeta declarada se
-  lee, la no declarada sigue bloqueada).
+- [x] **USO.51 — El chat no puede leer una ruta que el usuario le da fuera del proyecto.** (Carlos, 2026-11-23, Agro
+  no leyó `~/Projects/MemoriesMD`; aclarado 2026-11-27) Si el usuario escribe una ruta en el chat del proyecto, el
+  agente la puede leer, nunca escribir; sin Settings ni lista de carpetas (en Orca funciona). Causa: Claude va con
+  `--restricted` y un solo `--add-dir` (`external.ts:487-545`); el prompt aislado prohíbe "private vaults"
+  (`cli-registry.ts:89`). Alcance: rutas del mensaje e historial → `--add-dir` (el chat solo tiene Read/Glob/Grep) y
+  línea en el prompt; no en `/cut` ni sesión general. Gate: extender `ui:gate read-boundary` (la ruta nombrada se lee,
+  otra no nombrada sigue bloqueada). Antes (2026-11-26): lista por proyecto en Settings + botón "Autorizar carpeta",
+  descartado por Carlos.
+  Hecho: `userReadDirsForTurn` (`src/run/user-read-paths.ts`) toma solo lo tecleado por el usuario (mensaje +
+  historial; nunca adjuntos), carpeta del archivo, sin `/`, home ni el propio proyecto, máx. 10 → `--add-dir` en
+  Claude (no `/cut` ni sesión general) y línea en el prompt; `cli-registry.ts:89` permite rutas nombradas, nunca
+  modificarlas. Runner de ui:gate: escribe `result.json` aunque una espera huérfana rechace; 28 flujos usan el
+  compositor visible. Gates: tsc 0, 55/0, biome 0.
+  Gate en vivo: navegador (Playwright) `docs/done/evidence/USO.51-live.json` — Claude 7/7; turno de Codex no
+  verificado (compositor vacío en pestaña nueva → USO.41).
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.51.md
 - [x] **USO.48 — En Dev, el effort elegido en el composer vuelve a `medium`.** (Carlos, 2026-11-23, uso real)
   Esperado: cambio el effort en una sesión, me voy a otra vista/sesión, regreso y sigue donde lo dejé.
   Causa: USO.44 hace que `defaultEffort` sea siempre el de routing y el `useEffect` de defaults
@@ -324,6 +331,25 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Ambos fallan en cb5620de sin cambios: `dev-session-tabs` espera `[data-thread-id]` en Chat (`reloadChat`,
   `flows/dev-session-tabs.mjs:149-153`) y desde USO.10 el Chat no lista sesiones de proyecto; `project-isolation`
   muere con `page.waitForResponse: Target page … closed`. Las nocturnas están en pausa (CI.85), por eso nadie lo vio.
+  2026-11-27: el runner ya no pierde el error por la espera huérfana (USO.51) y los flujos usan el compositor
+  visible. Nuevo síntoma en `read-boundary`: en la pestaña nueva de Codex el compositor visible queda vacío tras
+  `fill` y Send sigue disabled (`ui-gate-81922/read-boundary/failure.png`) — ¿borrador que se resetea al crear la
+  sesión (`composer-drafts.ts`, USO.48)? Diagnosticar si es producto antes de tocar el flujo.
+- [ ] **CI.86 — Reanudar las nocturnas de ui-gates.** (GO de Carlos 2026-11-27, análisis de pi.dev) USO.49 rompió
+  `qa-negative` y nadie lo vio: la pausa de CI.85 dejó sin red los cambios de comportamiento. Alcance: `paused:
+  false`, `bun run nightly:install`, regla de la mañana vigente otra vez con triage (gate desfasado → se arregla el
+  gate; producto roto → ítem). Mutación sigue en pausa hasta MUT.1 (shards de más de 3 h). Junto: al cerrar un
+  cambio de comportamiento, grep de los flujos que lo asumen.
+- [ ] **GOV.5 — Cerrar un ítem cuesta más que hacerlo.** (GO de Carlos 2026-11-27) Evidencia de 2026-11-26: cerrar
+  USO.49 tomó ~6 intentos de commit (`plan:render` exige `plan:reconcile`, y tras cerrar hay que reabrir/recerrar
+  para cambiar texto; `agent:live-gate` exige ruta en la misma línea de "Gate en vivo:" con navegador/Playwright;
+  provenance exige `Spec:` al final exacto de línea; preflight rechaza ítems fuera del plan; el hook niega al cerebro
+  un fix de una línea en `scripts/`/`src/`). Alcance: `analizar` mide qué hook atrapó un error real y cuál solo frenó;
+  propuesta a Carlos (un comando de cierre + poda) antes de tocar hooks.
+- [ ] **RUN.3 — Fin de turno explícito en chat y gates.** (GO de Carlos 2026-11-27; idea de pi: `success` = aceptado,
+  fin = `agent_settled`) Evidencia: flujos que esperan una respuesta HTTP y mueren con la espera huérfana
+  (`chat-retry-report` 2026-11-25, `read-boundary` 2026-11-27, `project-isolation` en USO.41). Alcance: verificar si
+  el chat y las tareas exponen un evento/estado terminal único y si los flujos lo usan; diagnóstico antes de cambiar.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

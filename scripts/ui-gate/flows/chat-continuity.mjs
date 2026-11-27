@@ -10,7 +10,7 @@ function runJson(source) {
 }
 
 async function waitForComposerReady(page) {
-  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const button = page.locator('button[aria-label="Send message"]:visible').last()
   const startedAt = Date.now()
   const deadline = startedAt + 30_000
   while (Date.now() < deadline) {
@@ -149,7 +149,7 @@ export default async function chatContinuity({
     }),
   )
   await selectClaudeHaiku(page)
-  const claudeComposer = page.locator('textarea').last()
+  const claudeComposer = page.locator('textarea:visible').last()
   const firstClaude = await sendTurn(
     page,
     claudeComposer,
@@ -157,7 +157,12 @@ export default async function chatContinuity({
     note,
   )
   await reopenSession(page, api, claudeSession)
-  const claudeQuestion = await sendTurn(page, page.locator('textarea').last(), question, note)
+  const claudeQuestion = await sendTurn(
+    page,
+    page.locator('textarea:visible').last(),
+    question,
+    note,
+  )
   const claudeCapture = readFileSync(
     join(captureDir, `chat-cli-input-${claudeSession.id}.txt`),
     'utf8',
@@ -182,7 +187,7 @@ export default async function chatContinuity({
       method: 'DELETE',
     }),
   )
-  const codexComposer = page.locator('textarea').last()
+  const codexComposer = page.locator('textarea:visible').last()
   await sendTurn(
     page,
     codexComposer,
@@ -190,7 +195,7 @@ export default async function chatContinuity({
     note,
   )
   await reopenSession(page, api, codexSession)
-  const codexAnswer = await sendTurn(page, page.locator('textarea').last(), question, note)
+  const codexAnswer = await sendTurn(page, page.locator('textarea:visible').last(), question, note)
   const resumedCapture = readFileSync(
     join(captureDir, `chat-cli-input-${codexSession.id}.txt`),
     'utf8',
@@ -213,7 +218,7 @@ export default async function chatContinuity({
   `)
   if (updated.changes !== 1)
     throw new Error(`Could not replace Codex thread id for ${codexSession.id}`)
-  const afterExpiry = await sendTurn(page, page.locator('textarea').last(), question, note)
+  const afterExpiry = await sendTurn(page, page.locator('textarea:visible').last(), question, note)
   const expiredCapture = readFileSync(
     join(captureDir, `chat-cli-input-${codexSession.id}.txt`),
     'utf8',

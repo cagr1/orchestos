@@ -37,9 +37,9 @@ function sessionState(databasePath, sessionId) {
 }
 
 async function send(page, message) {
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await composer.fill(message)
-  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const button = page.locator('button[aria-label="Send message"]:visible').last()
   await waitFor(async () => await button.isEnabled(), 30_000)
   const request = page.waitForRequest(
     (req) => req.method() === 'POST' && new URL(req.url()).pathname === '/api/chat',

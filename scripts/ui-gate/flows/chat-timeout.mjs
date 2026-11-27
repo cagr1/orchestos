@@ -20,12 +20,12 @@ export default async function chatTimeout(ctx) {
   ctx.expectHttpError(/\/api\/chat(?:\?|$)/)
   const prompt =
     'Write a very detailed 20000 word history of mathematics. Think carefully for at least ten seconds before answering; then write the complete essay.'
-  await page.locator('textarea').last().fill(prompt)
+  await page.locator('textarea:visible').last().fill(prompt)
   const completed = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
     { timeout: 60000 },
   )
-  await page.getByRole('button', { name: 'Send message', exact: true }).last().click()
+  await page.locator('button[aria-label="Send message"]:visible').last().click()
   const waiting = page
     .locator('[data-thread-working]')
     // The counter runs from send; the notice arrives with turn/started, whose latency varies.

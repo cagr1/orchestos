@@ -223,6 +223,32 @@ describe('runClaudeChat (CC.1)', () => {
     expect(resumed[resumed.indexOf('--resume') + 1]).toBe('abc-123')
   })
 
+  it('USO.51 — adds user read directories only to project read-only chat', () => {
+    for (const [generalChat, cut] of [
+      [false, false],
+      [true, false],
+      [false, true],
+    ]) {
+      const args = buildClaudeChatArgs(
+        'system',
+        undefined,
+        undefined,
+        '/s.json',
+        '/proj',
+        undefined,
+        undefined,
+        undefined,
+        generalChat,
+        cut,
+        ['/outside/one', '/outside/two'],
+      )
+      const dirs = args.flatMap((arg, index) => (arg === '--add-dir' ? [args[index + 1]] : []))
+      expect(dirs).toEqual(
+        generalChat || cut ? ['/proj'] : ['/proj', '/outside/one', '/outside/two'],
+      )
+    }
+  })
+
   it('UI.24.6a — el directorio de adjuntos se suma con --add-dir; sin él los args no cambian', () => {
     const base = buildClaudeChatArgs('system', undefined, undefined, '/s.json', '/proj')
     expect(

@@ -177,7 +177,7 @@ export default async function chatAttachments({ page, api, step, shot, visible, 
           )),
       ),
     )
-    const send = page.getByRole('button', { name: 'Send message', exact: true }).last()
+    const send = page.locator('button[aria-label="Send message"]:visible').last()
     await composer.fill(
       'Reply with the reference code from the attached text file and the two words in the attached image.',
     )
@@ -290,7 +290,7 @@ export default async function chatAttachments({ page, api, step, shot, visible, 
     await shot(`chat-attachments-thread-${label}`)
   }
 
-  const devComposer = page.locator('textarea').last()
+  const devComposer = page.locator('textarea:visible').last()
   await pass('Dev', devComposer, session)
 
   // Segunda pasada en modo Chat: mismo proyecto, otro componente (OrchestChatView) y otra fusión.
@@ -306,6 +306,6 @@ export default async function chatAttachments({ page, api, step, shot, visible, 
   await chatDialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
   const chatSession = await (await chatStart).json()
   await chatDialog.waitFor({ state: 'hidden', timeout: 15_000 })
-  const chatComposer = page.locator('textarea').last()
+  const chatComposer = page.locator('textarea:visible').last()
   await pass('Chat', chatComposer, chatSession)
 }

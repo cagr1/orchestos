@@ -21,7 +21,7 @@ async function sendTurn(page, composer, message) {
   postFailure = null
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
-  const sendButton = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const sendButton = page.locator('button[aria-label="Send message"]:visible').last()
   const enabled = await waitFor(async () => ((await sendButton.isEnabled()) ? true : null), 30_000)
   if (!enabled) throw new Error('Chat send stayed disabled after model catalog loading')
   const startedAt = Date.now()
@@ -217,7 +217,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   if (session.agent !== 'claude')
     throw new Error(`Expected Claude session, received ${session.agent}`)
   await selectHaiku(page, visible)
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await installEntranceObserver(page)
   await page.evaluate(() => {
     window.__ciGrowth = []
@@ -773,7 +773,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await selectHaiku(page, visible)
   await installEntranceObserver(page)
-  const reducedComposer = page.locator('textarea').last()
+  const reducedComposer = page.locator('textarea:visible').last()
   await sendTurn(page, reducedComposer, 'Responde solo con la palabra: listo.')
   const reducedDone = await waitFor(async () => {
     const state = await readEntrances(page)
@@ -812,7 +812,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   if (devSession.agent !== 'claude')
     throw new Error(`Expected Claude Dev session, received ${devSession.agent}`)
   await selectHaiku(page, visible)
-  const devComposer = page.locator('textarea').last()
+  const devComposer = page.locator('textarea:visible').last()
   const devStart = await sendTurn(
     page,
     devComposer,

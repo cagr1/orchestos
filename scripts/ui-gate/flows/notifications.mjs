@@ -161,7 +161,7 @@ export default async function notifications({
   await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
   await page.getByRole('button', { name: /haiku/i }).first().click()
   await page.keyboard.press('Escape')
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   const reset = async (focused) =>
     page.evaluate((focused) => {
       window.__attention.focused = focused
@@ -179,19 +179,19 @@ export default async function notifications({
         response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
       { timeout: 180_000 },
     )
-    await page.getByRole('button', { name: 'Send message', exact: true }).waitFor()
+    await page.locator('button[aria-label="Send message"]:visible').waitFor()
     await composer.fill('Responde únicamente: listo')
     await waitFor(
-      () => page.getByRole('button', { name: 'Send message', exact: true }).isEnabled(),
+      () => page.locator('button[aria-label="Send message"]:visible').isEnabled(),
       30_000,
     )
-    await page.getByRole('button', { name: 'Send message', exact: true }).click()
+    await page.locator('button[aria-label="Send message"]:visible').click()
     const finished = await response
     await finished.finished()
     note('chat response finished', String(finished.status()))
     sessionId = finished.request().postDataJSON().sessionId
     if (!finished.ok()) throw new Error(`Chat failed: ${finished.status()}`)
-    await page.getByRole('button', { name: 'Send message', exact: true }).waitFor()
+    await page.locator('button[aria-label="Send message"]:visible').waitFor()
   }
   await reset(false)
   await turn()
@@ -321,7 +321,7 @@ export default async function notifications({
   const devTab = page.locator(`[data-session-tab="${sessionId}"]`)
   await devTab.waitFor()
   // Creation opens the tab before refreshing project agents; wait for the workspace too.
-  await page.locator('textarea').last().waitFor()
+  await page.locator('textarea:visible').last().waitFor()
   await step(
     'agent has an open Dev tab before notification',
     (await devTab.getAttribute('aria-selected')) === 'true',

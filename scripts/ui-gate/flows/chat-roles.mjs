@@ -78,7 +78,7 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   // No wait for the agent tab: text typed in the "new" tab while the agent launches must
   // reach the launched session (USO.12 moves the draft).
 
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   // A turn counts as sent when its POST /api/chat response arrives and the reply is
   // visible. Enter while the previous turn is busy is ignored, so retry until sent.
   let lastTurnMs = null

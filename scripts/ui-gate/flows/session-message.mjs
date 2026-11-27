@@ -113,8 +113,8 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
     await page.locator(`[data-session-tab="${sessions[index].id}"]`).waitFor()
   }
   const send = async () => {
-    const composer = page.locator('textarea').last()
-    const sendButton = page.getByRole('button', { name: 'Send message', exact: true }).last()
+    const composer = page.locator('textarea:visible').last()
+    const sendButton = page.locator('button[aria-label="Send message"]:visible').last()
     await composer.fill('Pass a review request to the other session.')
     await sendButton.waitFor()
     const deadline = Date.now() + 30000

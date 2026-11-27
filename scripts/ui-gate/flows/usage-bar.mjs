@@ -324,12 +324,12 @@ export default async function usageBar({
   await step('medium effort visible', await visible(medium), 'medium')
   if (!(await medium.isVisible())) return
   await medium.click()
-  await page.locator('textarea').last().fill('Responde únicamente: usage-bar-ok')
+  await page.locator('textarea:visible').last().fill('Responde únicamente: usage-bar-ok')
   const chatResponsePromise = page.waitForResponse(
     (response) => response.url().includes('/api/chat') && response.request().method() === 'POST',
     { timeout: 180_000 },
   )
-  await page.locator('textarea').last().press('Enter')
+  await page.locator('textarea:visible').last().press('Enter')
   const assistantResponse = page.getByText('usage-bar-ok', { exact: true }).last()
   const chatResponse = await chatResponsePromise
   const turnResponseAt = Date.now()

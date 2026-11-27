@@ -39,6 +39,7 @@ let dashboard
 let dashboardLogFd
 let cleaning = false
 const pendingCleanups = []
+const results = []
 
 function stdout(line) {
   process.stdout.write(`${line}\n`)
@@ -219,6 +220,15 @@ async function preserveCodexHome(base) {
 
 async function runFlow(name, base, port) {
   const result = { flujo: name, pass: false, steps: [], notes: [], errores: [], capturas: [] }
+  let secondaryRejections = 0
+  const onUnhandledRejection = (error) => {
+    const message = describeFlowError(error)
+    const secondary = /\b(?:Target )?(?:page|context|browser) has been closed\b/i.test(message)
+    result.errores.push(`unhandledRejection${secondary ? ' (secondary)' : ''}: ${message}`)
+    if (secondary) secondaryRejections++
+    else result.pass = false
+  }
+  process.on('unhandledRejection', onUnhandledRejection)
   const sourcePath = path.resolve('scripts/ui-gate/flows', `${name}.mjs`)
   let browser
   let page
@@ -382,8 +392,17 @@ async function runFlow(name, base, port) {
       const index = pendingCleanups.indexOf(cleanupFn)
       if (index >= 0) pendingCleanups.splice(index, 1)
     }
-    if (browser) await browser.close()
-    result.pass = result.steps.every((step) => step.ok) && result.errores.length === 0
+    try {
+      if (browser) await browser.close()
+    } catch (error) {
+      result.errores.push(describeFlowError(error))
+    } finally {
+      // Node emits orphaned waitForResponse rejections on the next event-loop turn.
+      await delay(0)
+      process.off('unhandledRejection', onUnhandledRejection)
+    }
+    result.pass =
+      result.steps.every((step) => step.ok) && result.errores.length === secondaryRejections
   }
   return result
 }
@@ -414,7 +433,6 @@ async function main() {
   dashboardLogFd = fs.openSync(dashboardLog, 'a')
   startDashboard(port)
   const base = `http://127.0.0.1:${port}`
-  const results = []
   if (!(await waitForHealth(base))) {
     results.push({
       flujo: 'boot',
@@ -450,7 +468,23 @@ async function main() {
 }
 
 main().catch(async (error) => {
-  await cleanup()
-  process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`)
+  const detail = error instanceof Error ? error.stack : String(error)
+  results.push({
+    flujo: 'runner',
+    pass: false,
+    steps: [],
+    errores: [describeFlowError(error)],
+    errorDetalle: detail,
+    capturas: [],
+  })
+  try {
+    await cleanup()
+  } finally {
+    await fsp.mkdir(runDir, { recursive: true })
+    const evidencePath = path.join(runDir, 'result.json')
+    await fsp.writeFile(evidencePath, JSON.stringify(results, null, 2))
+    stdout(`EVIDENCE ${evidencePath}`)
+  }
+  process.stderr.write(`${detail}\n`)
   process.exitCode = 1
 })

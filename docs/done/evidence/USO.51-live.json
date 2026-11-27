@@ -1,0 +1,44 @@
+{
+  "item": "USO.51",
+  "date": "2026-11-27",
+  "machine": "Mac de Carlos (macOS 25.6, Bun 1.4.0)",
+  "live": "bun run gate:evidence -- --label USO.51 -- bun run ui:gate read-boundary: los 7 pasos de Claude en verde (ruta nombrada leída con outcome succeeded y token en la respuesta; carpeta hermana no nombrada sin leer ni token). El flujo termina FAIL en el turno de Codex: el compositor visible de la pestaña nueva de Codex queda vacío tras fill y Send queda disabled (captura failure.png); el flujo ya fallaba en pestañas desde la nocturna del 2026-11-22. Pasado a USO.41. Turno de Codex con ruta nombrada: no verificado en vivo.",
+  "gates": [
+    "bunx tsc --noEmit: 0",
+    "user-read-paths + claude-chat + ui-gate run.test: 55/0",
+    "biome: 0 errores"
+  ],
+  "steps": [
+    {
+      "nombre": "Claude chat has available usage credits",
+      "ok": true
+    },
+    {
+      "nombre": "Claude reply contains the allowed fixture token",
+      "ok": true
+    },
+    {
+      "nombre": "Claude audit records the allowed fixture as read",
+      "ok": true
+    },
+    {
+      "nombre": "Claude files_read excludes the blocked fixture",
+      "ok": true
+    },
+    {
+      "nombre": "Claude reply excludes the blocked fixture token (DOM and persisted message)",
+      "ok": true
+    },
+    {
+      "nombre": "Claude audit rejects every operation on the blocked fixture",
+      "ok": true
+    },
+    {
+      "nombre": "Codex read boundary is declared as none",
+      "ok": true
+    }
+  ],
+  "errores": [
+    "locator.click: Timeout 30000ms exceeded. [waiting for element to be visible, enabled and stable]"
+  ]
+}

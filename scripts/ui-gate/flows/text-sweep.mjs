@@ -105,8 +105,8 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
   await step('medium visible', await visible(medium), 'reasoning effort')
   if (!(await medium.isVisible())) return
   await medium.click()
-  await page.locator('textarea').last().fill('Responde únicamente con OK.')
-  await page.locator('textarea').last().press('Enter')
+  await page.locator('textarea:visible').last().fill('Responde únicamente con OK.')
+  await page.locator('textarea:visible').last().press('Enter')
   await step('real Codex response visible', await waitForAssistant(page), 'assistant response')
 
   const text = await page.locator('body').innerText()

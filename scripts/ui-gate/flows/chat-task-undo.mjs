@@ -9,7 +9,7 @@ import { run, writeGateRoles } from '../lib.mjs'
 const FILE = 'notas/undo-check.md'
 
 async function waitForComposerReady(page) {
-  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const button = page.locator('button[aria-label="Send message"]:visible').last()
   const startedAt = Date.now()
   const deadline = startedAt + 30_000
   while (Date.now() < deadline) {
@@ -64,7 +64,7 @@ async function startChat(page, agentName, step, visible, projectRoot) {
   await step(`select ${agentName} for new chat`, await visible(agent), 'agent option visible')
   if (!(await agent.isVisible())) return false
   await agent.click()
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await step(
     'composer visible',
     await visible(composer),

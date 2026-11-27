@@ -15,13 +15,13 @@ export default async function chatNotices(ctx) {
   const headers = session.projectId ? { 'x-orchestos-project-id': session.projectId } : {}
   const scope = session.projectId ? '' : '?project=none'
   cleanup(() => api(`/api/chat/sessions/${session.id}${scope}`, { method: 'DELETE', headers }))
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await composer.fill('Reply with exactly: CHAT3 normal response')
   const completed = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
     { timeout: 150000 },
   )
-  await page.getByRole('button', { name: 'Send message', exact: true }).last().click()
+  await page.locator('button[aria-label="Send message"]:visible').last().click()
   const normal = await completed
   const normalBody = await normal.json()
   await step(
@@ -53,7 +53,7 @@ export default async function chatNotices(ctx) {
   const response = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
   )
-  await page.getByRole('button', { name: 'Send message', exact: true }).last().click()
+  await page.locator('button[aria-label="Send message"]:visible').last().click()
   const failed = await response
   const body = await failed.json()
   const message =

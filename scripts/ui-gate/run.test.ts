@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { spawnSync } from 'node:child_process'
 import {
   existsSync,
   mkdirSync,
@@ -174,6 +175,91 @@ describe('ui gate pure helpers', () => {
 })
 
 const source = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+const runFlowSource = source.slice(
+  source.indexOf('async function runFlow('),
+  source.indexOf('async function main('),
+)
+
+describe('ui gate orphaned rejections', () => {
+  for (const scenario of [
+    {
+      message: 'page.waitForResponse: Target page, context or browser has been closed',
+      primary: true,
+      pass: false,
+    },
+    { message: 'browser has been closed', primary: false, pass: true },
+    { message: 'unexpected response failure', primary: false, pass: false },
+  ]) {
+    test(`preserves evidence for ${scenario.message} (primary=${scenario.primary})`, () => {
+      const runDir = mkdtempSync(join(tmpdir(), 'runner-rejection-'))
+      try {
+        mkdirSync(join(runDir, 'scripts/ui-gate/flows'), { recursive: true })
+        writeFileSync(
+          join(runDir, 'scripts/ui-gate/flows/orphan.mjs'),
+          `
+          export default async ({ page, step }) => {
+            page.waitForResponse()
+            await step('fixture', true)
+            ${scenario.primary ? "throw new Error('original locator failure')" : ''}
+          }
+        `,
+        )
+        const child = spawnSync(
+          'node',
+          [
+            '--input-type=module',
+            '-e',
+            `
+          import fsp from 'node:fs/promises'
+          import path from 'node:path'
+          import { pathToFileURL } from 'node:url'
+          import { setTimeout as delay } from 'node:timers/promises'
+          import { describeFlowError, stripAnsi } from ${JSON.stringify(new URL('./lib.mjs', import.meta.url).href)}
+          const runDir = process.cwd()
+          const databasePath = ''
+          const captureDir = ''
+          const statuslineHome = ''
+          const dashboardToken = ''
+          const pendingCleanups = []
+          const preserveCodexHome = async () => {}
+          const lintFlowSource = () => null
+          let rejectResponse
+          const page = {
+            on() {},
+            async goto() {},
+            async screenshot() {},
+            waitForResponse() { return new Promise((_, reject) => { rejectResponse = reject }) },
+          }
+          const chromium = { launch: async () => ({
+            newPage: async () => page,
+            close: async () => { rejectResponse(new Error(${JSON.stringify(scenario.message)})) },
+          }) }
+          ${runFlowSource}
+          const result = await runFlow('orphan', '', 0)
+          await fsp.writeFile(path.join(runDir, 'result.json'), JSON.stringify(result))
+        `,
+          ],
+          {
+            cwd: runDir,
+            encoding: 'utf8',
+            env: { ...process.env, ORCHESTOS_GATE_EVIDENCE_HOME: '' },
+          },
+        )
+        expect(child.stderr).toBe('')
+        expect(child.status).toBe(0)
+        const result = JSON.parse(readFileSync(join(runDir, 'result.json'), 'utf8'))
+        expect(result.pass).toBe(scenario.pass)
+        expect(result.errores).toContain(
+          `unhandledRejection${scenario.message.includes('has been closed') ? ' (secondary)' : ''}: ${scenario.message}`,
+        )
+        if (scenario.primary) expect(result.errorDetalle).toBe('original locator failure')
+      } finally {
+        rmSync(runDir, { recursive: true, force: true })
+      }
+    })
+  }
+})
+
 const configuration = source.slice(
   source.indexOf('const flows ='),
   source.indexOf('const cleanedRunDirs ='),

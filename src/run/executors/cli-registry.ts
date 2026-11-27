@@ -86,7 +86,7 @@ const GENERATED_INSTRUCTIONS = `# OrchestOS isolated agent home
 
 This file is generated at runtime by OrchestOS for this project.
 It contains only project-runtime rules: follow the instructions supplied by OrchestOS for the current project.
-Do not load or reference user-level configuration, personal instructions, or private vaults.
+Do not load or reference user-level configuration, personal instructions, or private vaults unless the user names those paths in the conversation; user-named paths may be read, never modified.
 `
 
 /** Agregar un CLI nuevo = una entrada acá. `kimi` queda sin binario real

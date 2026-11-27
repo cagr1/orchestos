@@ -120,6 +120,7 @@ import {
   uninstrumentedReadAudit,
 } from '../../run/read-audit.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
+import { userReadDirsForTurn } from '../../run/user-read-paths.ts'
 import { redactSensitive } from '../../security/secrets.ts'
 import { untrustedContent } from '../../security/untrusted-content.ts'
 import { isReviewOnlyGate, listAllSkillCandidates } from '../../skills/catalog.ts'
@@ -1356,11 +1357,12 @@ async function handleApiChat(
 
     // CC.2 — una sesión es la fuente de verdad de su historia. Ignorar el array
     // enviado por el cliente evita mezclar/injectar mensajes de otra sesión.
-    const rawHistory = session
-      ? modelHistoryFromMessages(listChatMessages(session.id))
+    const originalHistory = session
+      ? listChatMessages(session.id)
       : Array.isArray(body.history)
         ? body.history
         : []
+    const rawHistory = session ? modelHistoryFromMessages(originalHistory) : originalHistory
     const history = rawHistory.slice(-10)
     const transcript = buildChatTranscript(history)
 
@@ -1619,7 +1621,7 @@ async function handleApiChat(
           )
         : undefined
     const lessons = listApplicable(hasProjectContext ? project.id : null)
-    const systemPrompt = buildChatSystemPrompt({
+    let systemPrompt = buildChatSystemPrompt({
       cut: isCut,
       hasProject: hasProjectContext,
       documentDirectory:
@@ -1650,16 +1652,6 @@ async function handleApiChat(
       readTools: CLAUDE_CHAT_TOOLS,
       offeredTools,
     })
-    // Solo lo activa scripts/ui-gate/run.mjs.
-    if (process.env.ORCHESTOS_GATE_CAPTURE_DIR && session)
-      try {
-        mkdirSync(process.env.ORCHESTOS_GATE_CAPTURE_DIR, { recursive: true })
-        writeFileSync(
-          join(process.env.ORCHESTOS_GATE_CAPTURE_DIR, `chat-prompt-${session.id}.txt`),
-          systemPrompt,
-        )
-      } catch {}
-    const contextTokens = estimateTokens(systemPrompt)
 
     const messages: { role: 'user' | 'assistant'; content: any }[] = history
       .filter((h) => h.role === 'user' || h.role === 'assistant')
@@ -1738,6 +1730,23 @@ async function handleApiChat(
       inboundText +
       textBlocks.join('') +
       (isCut ? cutPrompt({ hasNextMd: existsSync(join(root, 'NEXT.md')) }) : message)
+
+    const readDirs =
+      hasProjectContext && !generalSession && !isCut
+        ? userReadDirsForTurn({ message, history: originalHistory }, root)
+        : []
+    if (readDirs.length)
+      systemPrompt += `\nThe user authorized reading these directories: ${JSON.stringify(readDirs)}. Read only; do not modify them.\n`
+    // Solo lo activa scripts/ui-gate/run.mjs.
+    if (process.env.ORCHESTOS_GATE_CAPTURE_DIR && session)
+      try {
+        mkdirSync(process.env.ORCHESTOS_GATE_CAPTURE_DIR, { recursive: true })
+        writeFileSync(
+          join(process.env.ORCHESTOS_GATE_CAPTURE_DIR, `chat-prompt-${session.id}.txt`),
+          systemPrompt,
+        )
+      } catch {}
+    const contextTokens = estimateTokens(systemPrompt)
 
     // R.5 — reemplaza el par logChatRun()+persistResponse() (dos escrituras
     // separadas, sin garantía conjunta — el hallazgo central de R.5) por una
@@ -1939,6 +1948,7 @@ async function handleApiChat(
             hasProjectContext,
             generalChat: generalSession,
             cut: isCut,
+            readDirs,
             sessionId: session?.id,
             historyLength: rawHistory.length,
             transcript,

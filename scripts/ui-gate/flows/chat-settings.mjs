@@ -118,7 +118,7 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
     await page.keyboard.press('Escape')
   }
   await create()
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   const posts = []
   const responses = []
   let active = 0
@@ -163,8 +163,7 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
     const count = posts.length
     await composer.fill(long)
     await waitFor(
-      async () =>
-        page.getByRole('button', { name: 'Send message', exact: true }).last().isEnabled(),
+      async () => page.locator('button[aria-label="Send message"]:visible').last().isEnabled(),
       30_000,
     )
     await composer.press(modKey)

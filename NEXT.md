@@ -15,12 +15,8 @@ reales, 6 rechazos y solo 1 error real (tsc); 2 revirtieron trabajo bueno por un
   `run-steps.ts:40`) y tumbó el dashboard; la siguiente pasó. Si reaparece, diagnosticar qué cambia `db.sqlite` bajo
   el handle abierto.
 - **USO.50** cerrado (`qa-negative` 26/26 tras adaptarlo al reintento automático de USO.49).
-- **USO.51**: borrador `docs/specs/USO.51.md` — **sin GO**: Carlos pide antes comparar con Orca/T3 (resumen en
-  `/tmp/investigar-orca-t3.txt` si aún existe; si no, `delegate investigar`) y proponer diseño que cubra cualquier CLI (solo Claude tiene frontera; Codex ya lee fuera) → `delegate criterio`
-  tras cerrar USO.50. Mapa previo: Ajuste por proyecto en tabla `projects` como `setup_script`
-  (`src/db/projects.ts:87,131`, PATCH `handlers/projects.ts:46-67`, UI `ProjectGeneralSettings.tsx:112-124`);
-  Claude `--add-dir` por carpeta (`external.ts:533`); Codex `readOnly` sin evidencia de lectura fuera de cwd; nada
-  detecta hoy el rechazo de `--restricted`.
+- **USO.51** cerrado (Claude lee la ruta nombrada; Codex sin verificar en vivo → USO.41). Siguen CI.86 → GOV.5 → RUN.3
+  (GO 2026-11-27, análisis de pi.dev en PLAN.md); GOV.5 ya en `analizar` (`/tmp/gov5-analizar.txt`).
 - Pendiente de Carlos: ¿sumar USO.52 (salida declarada faltante no revierte lo escrito) y USO.53 (el ejecutor puede
   preguntar/escalar en vez de fallar, como el `question` de Orca)? Investigación Orca/T3: `/tmp/investigar-orca-t3.txt`
   (efímero; resumen: Orca coordina por mensajes y sin QA automático; T3 no coordina).

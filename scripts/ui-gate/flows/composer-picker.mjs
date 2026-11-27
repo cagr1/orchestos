@@ -245,7 +245,7 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   const devSession = await (await devCreated).json()
   await page.locator(`[data-thread-id="${devSession.id}"]`).waitFor()
   await page.locator(`[data-session-tab="${devSession.id}"][aria-selected="true"]`).waitFor()
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   await composer.waitFor({ state: 'visible' })
   await composer.fill('@READ')
   const files = page.getByRole('listbox', { name: 'Project files' })

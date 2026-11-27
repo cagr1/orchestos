@@ -35,7 +35,7 @@ async function waitFor(predicate, timeout = 180_000) {
 async function sendTurn(page, composer, message) {
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
-  const send = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const send = page.locator('button[aria-label="Send message"]:visible').last()
   if (!(await waitFor(async () => (await send.isEnabled()) || null, 30_000)))
     throw new Error('Codex chat send stayed disabled')
   const startedAt = Date.now()
@@ -147,7 +147,7 @@ export default async function codexLive({
           : []
       })
   const sampleInterval = 150
-  const composer = page.locator('textarea').last()
+  const composer = page.locator('textarea:visible').last()
   const word = `ZEBRA-${Math.random().toString(36).slice(2, 10).toUpperCase()}`
   const sentMessage = `Remember the word ${word}. Reply in ten short paragraphs about mangoes.`
   let firstResponseStatus = null

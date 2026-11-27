@@ -12,7 +12,7 @@ function runJson(source) {
 async function sendTurn(page, composer, message) {
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
-  const send = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const send = page.locator('button[aria-label="Send message"]:visible').last()
   await send.waitFor({ state: 'visible' })
   await page.waitForFunction(() =>
     document.querySelector('button[aria-label="Send message"]:not(:disabled)'),
@@ -92,7 +92,7 @@ async function askLatestCommit(
 ) {
   const reply = await sendTurn(
     page,
-    page.locator('textarea').last(),
+    page.locator('textarea:visible').last(),
     'What is the latest commit in this project? Verify it with your tools and answer with its short SHA.',
   )
   const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
