@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { run, waitLaunchSettled, writeGateRoles } from '../lib.mjs'
 
 function snapshot(databasePath, sessionId, taskId) {
   const source = `
@@ -152,6 +152,7 @@ export default async function restartMidRun({
       await step(`${label}: chat session created`, false, JSON.stringify(created.data))
       return false
     }
+    const previousLaunchId = (await taskStatus(taskId))?.launch?.id ?? null
     const launched = await api(`/api/tasks/${encodeURIComponent(taskId)}/run`, {
       method: 'POST',
       headers: { ...headers, 'Content-Type': 'application/json' },
@@ -203,6 +204,7 @@ export default async function restartMidRun({
         runnerPid,
         runsBefore: before.runs,
         retryCountBefore,
+        previousLaunchId,
       }
     }
     await restartDashboard(killNow)
@@ -218,6 +220,7 @@ export default async function restartMidRun({
       runnerPid,
       runsBefore: before.runs,
       retryCountBefore,
+      previousLaunchId,
     }
   }
 
@@ -237,18 +240,19 @@ export default async function restartMidRun({
     killRunner: false,
   })
   if (a) {
-    const ended = await until(
-      async () => {
-        const current = await taskStatus('gate-restart-a')
-        if (!current) return null
-        if (['done', 'failed', 'failed_permanent', 'blocked'].includes(current.status))
-          return current
-        if (current.status === 'pending' && current.retryCount > a.retryCountBefore) return current
-        return null
-      },
+    const launch = await waitLaunchSettled(
+      api,
+      project.id,
+      'gate-restart-a',
+      a.previousLaunchId,
       10 * 60_000,
-      2_000,
     )
+    await step(
+      'A: surviving launch completed',
+      launch.settled.outcome === 'completed',
+      JSON.stringify(launch),
+    )
+    const ended = await taskStatus('gate-restart-a')
     await step(
       'A: surviving runner ended its run by itself after the restart',
       Boolean(ended) && snapshot(databasePath, a.sessionId, 'gate-restart-a').runs > a.runsBefore,
@@ -319,6 +323,18 @@ export default async function restartMidRun({
     killRunner: true,
   })
   if (b) {
+    const launch = await waitLaunchSettled(
+      api,
+      project.id,
+      'gate-restart-b',
+      b.previousLaunchId,
+      60_000,
+    )
+    await step(
+      'B: killed launch interrupted',
+      launch.settled.outcome === 'interrupted',
+      JSON.stringify(launch),
+    )
     const failed = await until(
       async () => {
         const current = await taskStatus('gate-restart-b')
@@ -393,6 +409,18 @@ export default async function restartMidRun({
     keepDashboard: true,
   })
   if (c) {
+    const launch = await waitLaunchSettled(
+      api,
+      project.id,
+      'gate-restart-c',
+      c.previousLaunchId,
+      60_000,
+    )
+    await step(
+      'C: killed launch interrupted',
+      launch.settled.outcome === 'interrupted',
+      JSON.stringify(launch),
+    )
     const failed = await until(
       async () => {
         const current = await taskStatus('gate-restart-c')

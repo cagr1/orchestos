@@ -92,9 +92,12 @@ export async function waitTurnSettled(api, projectId, sessionId, knownTurnIds, t
   const deadline = Date.now() + timeout
   let turn
   do {
-    const response = await api(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`, {
-      headers: { 'x-orchestos-project-id': projectId },
-    })
+    const response = await api(
+      `/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline${projectId ? '' : '?project=none'}`,
+      {
+        headers: projectId ? { 'x-orchestos-project-id': projectId } : {},
+      },
+    )
     if (response.status !== 200) throw new Error(`Chat timeline returned HTTP ${response.status}`)
     const newTurns = response.data?.turns?.filter((item) => !knownTurnIds.has(item.id)) ?? []
     turn = newTurns.find((item) => item.settled != null) ?? newTurns.at(-1)
@@ -126,4 +129,26 @@ export async function waitLaunchSettled(api, projectId, taskId, previousLaunchId
   throw new Error(
     `Timed out waiting for task launch to settle: newLaunch=${Boolean(task?.launch && task.launch.id !== previousLaunchId)} launchId=${task?.launch?.id ?? 'none'} status=${task?.status ?? 'missing'} settled=${JSON.stringify(task?.launch?.settled ?? null)}`,
   )
+}
+
+// Snapshot before sending so an older persisted reply cannot finish the new turn.
+export async function knownTurnIds(api, projectId, sessionId) {
+  const scope = projectId ? '' : '?project=none'
+  const response = await api(
+    `/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline${scope}`,
+    {
+      headers: projectId ? { 'x-orchestos-project-id': projectId } : {},
+    },
+  )
+  if (response.status !== 200) throw new Error(`Chat timeline returned HTTP ${response.status}`)
+  return new Set(response.data.turns.map((turn) => turn.id))
+}
+
+export async function completedReply(page, api, projectId, sessionId, knownIds, timeout = 180_000) {
+  const { turnId, settled } = await waitTurnSettled(api, projectId, sessionId, knownIds, timeout)
+  if (settled.outcome !== 'completed')
+    throw new Error(`Chat turn ${turnId} ${settled.outcome}: ${settled.reason}`)
+  const reply = page.locator(`[data-turn-id="${turnId}"][data-settled="completed"]`)
+  await reply.waitFor({ state: 'visible', timeout })
+  return reply
 }

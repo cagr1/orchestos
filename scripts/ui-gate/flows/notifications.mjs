@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 async function waitFor(predicate, timeout = 180_000) {
   const deadline = Date.now() + timeout
@@ -168,17 +168,14 @@ export default async function notifications({
       window.__attention.calls = []
       window.__attention.tones = []
     }, focused)
-  let sessionId
+  let sessionId = chatSession.id
   const turn = async () => {
     note('sending chat turn')
     await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
     await page.getByRole('button', { name: /haiku/i }).first().click()
     await page.keyboard.press('Escape')
-    const response = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
-      { timeout: 180_000 },
-    )
+    const projectId = sessionId === chatSession.id ? chatSession.projectId : devSession.projectId
+    const knownIds = await knownTurnIds(api, projectId, sessionId)
     await page.locator('button[aria-label="Send message"]:visible').waitFor()
     await composer.fill('Responde únicamente: listo')
     await waitFor(
@@ -186,11 +183,8 @@ export default async function notifications({
       30_000,
     )
     await page.locator('button[aria-label="Send message"]:visible').click()
-    const finished = await response
-    await finished.finished()
-    note('chat response finished', String(finished.status()))
-    sessionId = finished.request().postDataJSON().sessionId
-    if (!finished.ok()) throw new Error(`Chat failed: ${finished.status()}`)
+    await completedReply(page, api, projectId, sessionId, knownIds)
+    note('chat turn settled', sessionId)
     await page.locator('button[aria-label="Send message"]:visible').waitFor()
   }
   await reset(false)

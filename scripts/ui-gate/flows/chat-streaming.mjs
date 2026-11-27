@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { knownTurnIds, run, waitTurnSettled, writeGateRoles } from '../lib.mjs'
 
 let postFailure = null
 
@@ -17,13 +17,14 @@ async function waitFor(predicate, timeout = 180_000) {
   return null
 }
 
-async function sendTurn(page, composer, message) {
+async function sendTurn(page, api, projectId, sessionId, composer, message) {
   postFailure = null
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
   const sendButton = page.locator('button[aria-label="Send message"]:visible').last()
   const enabled = await waitFor(async () => ((await sendButton.isEnabled()) ? true : null), 30_000)
   if (!enabled) throw new Error('Chat send stayed disabled after model catalog loading')
+  const knownIds = await knownTurnIds(api, projectId, sessionId)
   const startedAt = Date.now()
   const responsePromise = page
     .waitForResponse(
@@ -50,7 +51,20 @@ async function sendTurn(page, composer, message) {
     sent = await request
   }
   if (!sent) throw new Error('Chat send request was not observed')
-  return startedAt
+  const turn = { startedAt, result: null }
+  turn.done = waitTurnSettled(api, projectId, sessionId, knownIds, 180_000)
+    .then((result) => {
+      if (result.settled.outcome !== 'completed')
+        throw new Error(
+          `Chat turn ${result.turnId} ${result.settled.outcome}: ${result.settled.reason}`,
+        )
+      turn.result = result
+      return result
+    })
+    .catch((error) => {
+      postFailure = error.message
+    })
+  return turn
 }
 
 // UI.24.7 — registra cada entrada animada: un mensaje (por elemento y por posición) anima una vez.
@@ -235,12 +249,16 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     }
     window.requestAnimationFrame(sample)
   })
-  const startedAt = await sendTurn(
+  const firstTurn = await sendTurn(
     page,
+    api,
+    session.projectId,
+    session.id,
     composer,
     'Escribe los números del 1 al 120 en palabras, uno por línea.',
   )
 
+  const startedAt = firstTurn.startedAt
   const visibleText = async () =>
     (await page.locator('div.prose').allInnerTexts()).at(-1)?.trim() ?? ''
   let firstAt = null
@@ -288,11 +306,19 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       tookScreenshot = true
       await shot('chat-text-visible-mid-turn')
     }
-    return !timeline.data?.pending &&
-      timeline.data?.messages?.some((message) => message.role === 'assistant')
+    return firstTurn.result != null &&
+      timeline.data?.turns?.some(
+        (turn) => turn.id === firstTurn.result.turnId && turn.settled != null,
+      )
       ? { timeline: timeline.data, doneAt: Date.now() - startedAt }
       : null
   })
+  if (completion) {
+    const reply = page.locator(
+      `[data-turn-id="${firstTurn.result.turnId}"][data-settled="completed"]`,
+    )
+    await reply.waitFor()
+  }
   const growthLengths = await page.evaluate(() => {
     window.__ciGrowthStop = true
     return window.__ciGrowth ?? []
@@ -336,9 +362,19 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       ? `indicator removed after ${workingGoneMs} ms`
       : `${workingIndicators} working indicators remain after ${workingGoneMs} ms`,
   )
-  const visibleFinal = await visibleText()
+  const visibleFinal = completion
+    ? (
+        await page
+          .locator(
+            `[data-turn-id="${firstTurn.result.turnId}"][data-settled="completed"] div.prose`,
+          )
+          .innerText()
+      ).trim()
+    : ''
   const assistantMessages =
-    completion?.timeline.messages.filter((message) => message.role === 'assistant') ?? []
+    completion?.timeline.messages.filter(
+      (message) => message.role === 'assistant' && message.turnId === firstTurn.result.turnId,
+    ) ?? []
   const persisted = assistantMessages[0]?.content ?? ''
   const visibleSquashed = words(visibleFinal)
   const persistedSquashed = words(persisted)
@@ -532,7 +568,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   let chatComposerMidTurnChecked = false
   let secondChatCompletion = null
   for (const prompt of extraChatPrompts) {
-    await sendTurn(page, composer, prompt)
+    const turn = await sendTurn(page, api, session.projectId, session.id, composer, prompt)
     sampledChatPrompts.push(prompt)
     secondChatCompletion = await waitFor(async () => {
       const timeline = await api(
@@ -567,9 +603,10 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
           JSON.stringify({ liveCount, order: midOrder.map((text) => squash(text).slice(0, 50)) }),
         )
       }
-      const assistants =
-        timeline.data?.messages?.filter((message) => message.role === 'assistant') ?? []
-      return !timeline.data?.pending && assistants.length >= 2 ? timeline.data : null
+      return turn.result != null &&
+        timeline.data?.turns?.some((item) => item.id === turn.result.turnId && item.settled != null)
+        ? timeline.data
+        : null
     })
     if (chatMidTurnChecked && chatComposerMidTurnChecked) break
   }
@@ -774,11 +811,23 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   await selectHaiku(page, visible)
   await installEntranceObserver(page)
   const reducedComposer = page.locator('textarea:visible').last()
-  await sendTurn(page, reducedComposer, 'Responde solo con la palabra: listo.')
+  const reducedTurn = await sendTurn(
+    page,
+    api,
+    session.projectId,
+    session.id,
+    reducedComposer,
+    'Responde solo con la palabra: listo.',
+  )
   const reducedDone = await waitFor(async () => {
     const state = await readEntrances(page)
     return state.reduced.some((item) => item.kind === 'assistant') ? state : null
   }, 180_000)
+  await reducedTurn.done
+  if (postFailure) throw new Error(postFailure)
+  await page
+    .locator(`[data-turn-id="${reducedTurn.result.turnId}"][data-settled="completed"]`)
+    .waitFor()
   await page.emulateMedia({ reducedMotion: null })
   const flat = (item) =>
     item.opacity === '1' &&
@@ -814,11 +863,15 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   await page.locator(`[data-session-tab="${devSession.id}"][aria-selected="true"]`).waitFor()
   await selectHaiku(page, visible)
   const devComposer = page.locator('textarea:visible').last()
-  const devStart = await sendTurn(
+  const devTurn = await sendTurn(
     page,
+    api,
+    project.id,
+    devSession.id,
     devComposer,
     'Escribe una respuesta breve: uno, dos, tres, cuatro y cinco.',
   )
+  const devStart = devTurn.startedAt
   let devFirst = null
   let devDone = null
   let devVisible = ''
@@ -829,14 +882,23 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       headers: { 'x-orchestos-project-id': project.id },
     })
     if (
-      !timeline.data?.pending &&
-      timeline.data?.messages?.some((message) => message.role === 'assistant')
+      devTurn.result != null &&
+      timeline.data?.turns?.some(
+        (turn) => turn.id === devTurn.result.turnId && turn.settled != null,
+      )
     ) {
       devDone = Date.now() - devStart
       return timeline.data
     }
     return null
   })
+  if (devCompletion) {
+    const reply = page.locator(
+      `[data-turn-id="${devTurn.result.turnId}"][data-settled="completed"]`,
+    )
+    await reply.waitFor()
+    devVisible = (await reply.innerText()).trim()
+  }
   await step(
     'Dev renders text during generation before completion',
     Boolean(devCompletion && devFirst < devDone),

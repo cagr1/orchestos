@@ -3,59 +3,19 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 function runJson(source) {
   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))
 }
 
-async function sendTurn(page, composer, message) {
+async function sendTurn(page, api, projectId, sessionId, composer, message) {
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
-  const previousReplyCount = await page.locator('div.prose').count()
   await composer.fill(message)
-  await page
-    .locator('button[aria-label="Send message"]:visible')
-    .last()
-    .waitFor({ state: 'visible' })
-  const deadline = Date.now() + 180_000
-  const response = page
-    .waitForResponse(
-      (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
-      { timeout: 180_000 },
-    )
-    .catch(() => null)
-  while (Date.now() < deadline) {
-    const request = page
-      .waitForRequest(
-        (req) => req.method() === 'POST' && new URL(req.url()).pathname === '/api/chat',
-        { timeout: 5_000 },
-      )
-      .then(() => true)
-      .catch(() => false)
-    await composer.press('Enter')
-    if (!(await request)) continue
-    const result = await response
-    if (!result) return ''
-    if (!result.ok()) {
-      const body = (await result.text()).slice(0, 500)
-      throw new Error(`/api/chat returned HTTP ${result.status()}: ${body}`)
-    }
-    return waitForReply(page, previousReplyCount)
-  }
-  return ''
-}
-
-async function waitForReply(page, replyIndex) {
-  const deadline = Date.now() + 180_000
-  const reply = page.locator('div.prose').nth(replyIndex)
-  while (Date.now() < deadline) {
-    if (await reply.isVisible().catch(() => false)) {
-      const response = (await reply.innerText()).trim()
-      if (response) return response
-    }
-    await page.waitForTimeout(300)
-  }
-  return ''
+  const knownIds = await knownTurnIds(api, projectId, sessionId)
+  await page.locator('button[aria-label="Send message"]:visible').last().click()
+  const reply = await completedReply(page, api, projectId, sessionId, knownIds)
+  return (await reply.innerText()).trim()
 }
 
 async function startChat(page, agent, projectName) {
@@ -194,7 +154,7 @@ export default async function chatContext({
   const codexSession = await startChat(page, 'Codex', basename(projectRoot))
   await page.getByRole('button', { name: /GPT-6-Luna · medium/i }).waitFor({ state: 'visible' })
   const composer = page.locator('textarea:visible').last()
-  const codexReply = await sendTurn(page, composer, prompt)
+  const codexReply = await sendTurn(page, api, project.id, codexSession.id, composer, prompt)
   const codexPrompt = readFileSync(join(captureDir, `chat-prompt-${codexSession.id}.txt`), 'utf8')
   await step(
     'Codex chat context includes tools, partial cost, QA, model, and zoned time',
@@ -229,7 +189,14 @@ export default async function chatContext({
   const claudeSession = await startChat(page, 'Claude', basename(projectRoot))
   await selectClaudeHaiku(page)
   const claudeComposer = page.locator('textarea:visible').last()
-  const claudeReply = await sendTurn(page, claudeComposer, prompt)
+  const claudeReply = await sendTurn(
+    page,
+    api,
+    project.id,
+    claudeSession.id,
+    claudeComposer,
+    prompt,
+  )
   const claudePrompt = readFileSync(join(captureDir, `chat-prompt-${claudeSession.id}.txt`), 'utf8')
   await step(
     'Claude chat context includes its tools and the previous Codex run',

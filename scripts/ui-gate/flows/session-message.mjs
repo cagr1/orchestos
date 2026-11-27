@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 export default async function sessionMessage({ page, api, step, shot, cleanup, restartDashboard }) {
   const root = mkdtempSync(join(tmpdir(), 'orchestos-session-message-'))
@@ -119,14 +119,9 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
     await sendButton.waitFor()
     const deadline = Date.now() + 30000
     while (!(await sendButton.isEnabled()) && Date.now() < deadline) await page.waitForTimeout(100)
-    const completed = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
-      { timeout: 180000 },
-    )
+    const knownIds = await knownTurnIds(api, project.id, sessions[0].id)
     await composer.press('Enter')
-    const response = await completed
-    if (!response.ok()) throw new Error(`/api/chat ${response.status()}: ${await response.text()}`)
+    await completedReply(page, api, project.id, sessions[0].id, knownIds)
   }
   const before = await timeline(1)
   await open(0)

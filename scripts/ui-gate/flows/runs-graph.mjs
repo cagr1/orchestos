@@ -3,41 +3,13 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { run, waitLaunchSettled, writeGateRoles } from '../lib.mjs'
 
 async function runsFor(api, projectId) {
   const response = await api('/api/runs', {
     headers: { 'x-orchestos-project-id': projectId },
   })
   return Array.isArray(response.data) ? response.data : []
-}
-
-async function waitForTaskChange(api, projectId, taskId, previousRetryCount, previousRunId) {
-  const startedAt = Date.now()
-  const deadline = startedAt + 10 * 60_000
-  let task
-  while (Date.now() <= deadline) {
-    const response = await api('/api/tasks', {
-      headers: { 'x-orchestos-project-id': projectId },
-    })
-    task = (response.data?.tasks ?? []).find((item) => item.id === taskId)
-    if (
-      task &&
-      ((task.status !== 'pending' && task.status !== 'running') ||
-        (task.status === 'pending' &&
-          (task.retryCount !== previousRetryCount || task.runId !== previousRunId)))
-    )
-      return task
-    if (
-      task?.status === 'pending' &&
-      Date.now() - startedAt >= 20_000 &&
-      task.retryCount === previousRetryCount &&
-      task.runId === previousRunId
-    )
-      return task
-    await delay(2_000)
-  }
-  return task
 }
 
 async function waitForEnabled(locator, timeoutMs = 15_000) {
@@ -161,13 +133,27 @@ export default async function runsGraph({ page, api, step, note, shot, visible, 
   ).data?.tasks?.find((item) => item.id === 'gate-runs-task')
   for (let clickCount = 0; task && task.retryCount < 3 && clickCount < 3; clickCount++) {
     const retryCount = task.retryCount
-    const runId = task.runId
+    const previousLaunchId = task.launch?.id ?? null
     if (!(await runButton.isEnabled())) {
       const enabled = await waitForEnabled(runButton)
       if (!enabled) break
     }
     await runButton.click()
-    task = await waitForTaskChange(api, project.id, 'gate-runs-task', retryCount, runId)
+    const launch = await waitLaunchSettled(
+      api,
+      project.id,
+      'gate-runs-task',
+      previousLaunchId,
+      10 * 60_000,
+    )
+    await step(
+      'task launch completed',
+      launch.settled.outcome === 'completed',
+      JSON.stringify(launch),
+    )
+    task = (
+      await api('/api/tasks', { headers: { 'x-orchestos-project-id': project.id } })
+    ).data?.tasks?.find((item) => item.id === 'gate-runs-task')
     if (
       task &&
       (task.retryCount > retryCount ||

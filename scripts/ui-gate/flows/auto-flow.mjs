@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, waitLaunchSettled, writeGateRoles } from '../lib.mjs'
 
 function runJson(source) {
   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))
@@ -19,55 +19,13 @@ async function tasksFor(api, projectId) {
   return Array.isArray(response.data?.tasks) ? response.data.tasks : []
 }
 
-async function waitForTaskFinished(api, projectId, taskId, initialTask) {
-  const deadline = Date.now() + 10 * 60_000
-  let task
-  while (Date.now() <= deadline) {
-    task = (await tasksFor(api, projectId)).find((item) => item.id === taskId)
-    if (
-      task &&
-      ((task.status !== 'pending' && task.status !== 'running') ||
-        (task.status === 'pending' &&
-          (task.retryCount !== initialTask.retryCount || task.runId !== initialTask.runId)))
-    )
-      return task
-    await delay(2_000)
-  }
-  return task
-}
-
-async function sendMessage({ page, composer, text, step, shot }) {
-  const previousReplyCount = await page.locator('div.prose').count()
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
-    { timeout: 180_000 },
-  )
+async function sendMessage({ page, api, projectId, sessionId, composer, text, step }) {
   await composer.fill(text)
+  const knownIds = await knownTurnIds(api, projectId, sessionId)
   await composer.press('Enter')
-  let response
-  try {
-    response = await responsePromise
-  } catch {
-    await shot('send-timeout')
-    await step(
-      'chat request sent',
-      false,
-      await composer.inputValue().catch(() => 'composer text unavailable'),
-    )
-    return null
-  }
-  if (!response.ok())
-    throw new Error(
-      `/api/chat returned HTTP ${response.status()}: ${(await response.text()).slice(0, 500)}`,
-    )
-  const reply = page.locator('div.prose').nth(previousReplyCount)
-  await reply.waitFor({ state: 'visible', timeout: 180_000 })
-  await step(
-    `chat response: ${text.slice(0, 45)}`,
-    Boolean((await reply.innerText()).trim()),
-    'assistant reply visible',
-  )
+  const reply = await completedReply(page, api, projectId, sessionId, knownIds)
+  const replyText = (await reply.innerText()).trim()
+  await step('chat turn completed and reply visible', replyText.length > 0, replyText.slice(0, 200))
   return reply
 }
 
@@ -308,6 +266,9 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
   if (!questionSession) throw new Error('Codex chat session was not created')
   const composer = page.locator('textarea:visible').last()
   await sendMessage({
+    api,
+    projectId: projectId,
+    sessionId: questionSession.id,
     page,
     composer,
     text: '¿Qué es un DAG? Responde en una frase, sin crear ni modificar archivos.',
@@ -337,6 +298,9 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
     const initialTasks = await tasksFor(api, projectId)
     const initialIds = new Set(initialTasks.map((task) => task.id))
     const reply = await sendMessage({
+      api,
+      projectId: projectId,
+      sessionId: questionSession.id,
       page,
       composer,
       text,
@@ -370,6 +334,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
     taskIds.push(task.id)
     const taskCard = page.locator(`[data-task-id="${task.id}"]`)
     const approveButton = page.getByRole('button', { name: 'Approve & Run', exact: true }).last()
+    let previousLaunchId = null
     if (expectHeld) {
       const buttonVisible = await visible(approveButton, 30_000)
       let heldState = (await tasksFor(api, projectId)).find((item) => item.id === task.id)
@@ -415,6 +380,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
         }),
       )
       if (!stayedHeld) return null
+      previousLaunchId = heldState?.launch?.id ?? null
       await approveButton.click()
       const startsDeadline = Date.now() + 60_000
       let started
@@ -457,7 +423,13 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
       )
       if (buttonVisible || !didStart) return null
     }
-    const finished = await waitForTaskFinished(api, projectId, task.id, task)
+    const launch = await waitLaunchSettled(api, projectId, task.id, previousLaunchId, 10 * 60_000)
+    await step(
+      `${filename}: launch completed`,
+      launch.settled.outcome === 'completed',
+      JSON.stringify(launch),
+    )
+    const finished = (await tasksFor(api, projectId)).find((item) => item.id === task.id)
     const done = finished?.status === 'done'
     await step(
       `${filename}: task finished`,

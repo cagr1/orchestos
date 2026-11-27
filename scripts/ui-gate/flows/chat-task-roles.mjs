@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { parse as yamlParse } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 const FILE = 'notas/hola.md'
 
@@ -23,30 +23,12 @@ async function tasksFor(api, projectId) {
   return Array.isArray(response.data?.tasks) ? response.data.tasks : []
 }
 
-async function sendMessage({ page, composer, text, step, shot }) {
-  const previousReplyCount = await page.locator('div.prose').count()
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
-    { timeout: 180_000 },
-  )
+async function sendMessage({ page, api, projectId, sessionId, composer, text }) {
   await composer.fill(text)
   await waitForComposerReady(page)
+  const knownIds = await knownTurnIds(api, projectId, sessionId)
   await composer.press('Enter')
-  let response
-  try {
-    response = await responsePromise
-  } catch {
-    await shot('send-timeout')
-    await step('chat request sent', false, `no /api/chat response for: ${text.slice(0, 60)}`)
-    return null
-  }
-  if (!response.ok())
-    throw new Error(
-      `/api/chat returned HTTP ${response.status()}: ${(await response.text()).slice(0, 500)}`,
-    )
-  const reply = page.locator('div.prose').nth(previousReplyCount)
-  await reply.waitFor({ state: 'visible', timeout: 180_000 })
+  const reply = await completedReply(page, api, projectId, sessionId, knownIds)
   return reply
 }
 
@@ -121,6 +103,9 @@ export default async function chatTaskRolesFlow({ page, api, step, shot, visible
   if (!(await composer.isVisible())) return
   const before = new Set((await tasksFor(api, projectId)).map((task) => task.id))
   const first = await sendMessage({
+    api,
+    projectId: project.id,
+    sessionId: session.id,
     page,
     composer,
     text: 'Crea una tarea para escribir `notas/hola.md` con una sola línea: hola. Créala ya, sin preguntar.',
@@ -149,6 +134,9 @@ export default async function chatTaskRolesFlow({ page, api, step, shot, visible
   await step('git initialization offered', await visible(initialize), 'git offer above composer')
   await shot('git-offer')
   const blocked = await sendMessage({
+    api,
+    projectId: project.id,
+    sessionId: session.id,
     page,
     composer,
     text: 'Ya asigné los modelos. Crea la tarea otra vez.',
@@ -189,6 +177,9 @@ export default async function chatTaskRolesFlow({ page, api, step, shot, visible
     '.git exists and offer disappeared',
   )
   const second = await sendMessage({
+    api,
+    projectId: project.id,
+    sessionId: session.id,
     page,
     composer,
     text: 'Ya inicialicé git. Crea la tarea otra vez.',
@@ -246,6 +237,9 @@ export default async function chatTaskRolesFlow({ page, api, step, shot, visible
   )
 
   const third = await sendMessage({
+    api,
+    projectId: project.id,
+    sessionId: session.id,
     page,
     composer,
     text: '¿La tarea terminó? Compruébalo.',

@@ -3,13 +3,13 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 function runJson(source) {
   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))
 }
 
-async function sendTurn(page, composer, message) {
+async function sendTurn(page, api, projectId, sessionId, composer, message) {
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
   const send = page.locator('button[aria-label="Send message"]:visible').last()
@@ -17,6 +17,7 @@ async function sendTurn(page, composer, message) {
   await page.waitForFunction(() =>
     document.querySelector('button[aria-label="Send message"]:not(:disabled)'),
   )
+  const knownIds = await knownTurnIds(api, projectId, sessionId)
   const responsePromise = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
     { timeout: 180_000 },
@@ -29,7 +30,7 @@ async function sendTurn(page, composer, message) {
     )
   const apiText = (await response.json()).text
   if (typeof apiText !== 'string') throw new Error('/api/chat response text was not a string')
-  const reply = page.locator('div.prose').last()
+  const reply = await completedReply(page, api, projectId, sessionId, knownIds)
   const deadline = Date.now() + 30_000
   let domText = ''
   while (Date.now() < deadline) {
@@ -92,6 +93,9 @@ async function askLatestCommit(
 ) {
   const reply = await sendTurn(
     page,
+    api,
+    project.id,
+    session.id,
     page.locator('textarea:visible').last(),
     'What is the latest commit in this project? Verify it with your tools and answer with its short SHA.',
   )

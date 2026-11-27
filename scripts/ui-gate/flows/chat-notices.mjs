@@ -1,3 +1,4 @@
+import { completedReply, knownTurnIds } from '../lib.mjs'
 // CHAT.3: real dashboard/browser; the invalid model is rejected by the real
 // catalog validator. No CLI response or HTTP response is mocked.
 export default async function chatNotices(ctx) {
@@ -17,16 +18,20 @@ export default async function chatNotices(ctx) {
   cleanup(() => api(`/api/chat/sessions/${session.id}${scope}`, { method: 'DELETE', headers }))
   const composer = page.locator('textarea:visible').last()
   await composer.fill('Reply with exactly: CHAT3 normal response')
+  const knownIds = await knownTurnIds(api, session.projectId, session.id)
   const completed = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
     { timeout: 150000 },
   )
   await page.locator('button[aria-label="Send message"]:visible').last().click()
+  const reply = await completedReply(page, api, session.projectId, session.id, knownIds)
   const normal = await completed
   const normalBody = await normal.json()
   await step(
     'normal Codex turn completes',
-    normal.ok() && normalBody.text?.includes('CHAT3 normal response'),
+    normal.ok() &&
+      normalBody.text?.includes('CHAT3 normal response') &&
+      (await reply.innerText()).includes('CHAT3 normal response'),
     JSON.stringify(normalBody),
   )
   const timeline = await api(`/api/chat/sessions/${session.id}/timeline${scope}`, { headers })
@@ -61,7 +66,9 @@ export default async function chatNotices(ctx) {
   const alert = page.getByRole('alert').filter({ hasText: message })
   await step(
     'invalid Codex model is classified by the real server',
-    failed.status() === 400 && body.notice?.kind === 'invalid-model',
+    failed.status() === 400 &&
+      !Object.hasOwn(body, 'turnId') &&
+      body.notice?.kind === 'invalid-model',
     JSON.stringify(body),
   )
   await step('classified failure is visible in the chat thread', await ctx.visible(alert), message)

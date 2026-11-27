@@ -422,6 +422,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
 - [ ] **RUN.3.4 — Migrar el resto de flujos a `settled`.** (GO de Carlos 2026-11-27) Los que aceptan cambio de
   intento (`auto-flow`, `runs-graph`, `custom-cli`, `restart-mid-run`) y los de prosa/inactividad agregada
   (lista en el diagnóstico § 3). Va después de RUN.3.3.
+  2026-11-27: flujos migrados (21 + helpers `knownTurnIds`/`completedReply` en `lib.mjs`); un rechazo previo al
+  turno (4xx sin `turnId`) sigue terminando en la respuesta HTTP. En vivo: `auto-flow` 35/35, `runs-graph`,
+  `custom-cli`, `chat-timeout` 10/10 (regex del motivo arreglada por el cerebro). Sin verificar: `restart-mid-run` y
+  `chat-attachments` (cupo de Codex agotado a mitad de la corrida), `chat-streaming` (cae antes, en el diálogo
+  "Launch new agent" de Dev sin botón Claude: código fuera de RUN.3.4) y el resto. Se cierra con la nocturna del
+  2026-11-28. Evidencia parcial: `docs/done/evidence/RUN.3.4-live.json`.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 async function waitForRequest(requests, predicate, timeout = 15_000) {
   const deadline = Date.now() + timeout
@@ -312,7 +312,12 @@ export default async function usageBar({
   await step('Codex chat option visible', await visible(codex), 'Codex option')
   if (!(await codex.isVisible())) return
   await codex.click()
+  const created = page.waitForResponse(
+    (res) =>
+      res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat/sessions',
+  )
   await page.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  const session = await (await created).json()
   const modelControl = page.locator('[data-composer-region] button.font-mono:not([aria-label])')
   await modelControl.click()
   const model = page.getByRole('button', { name: /gpt-6-luna/i }).first()
@@ -325,27 +330,32 @@ export default async function usageBar({
   if (!(await medium.isVisible())) return
   await medium.click()
   await page.locator('textarea:visible').last().fill('Responde únicamente: usage-bar-ok')
-  const chatResponsePromise = page.waitForResponse(
-    (response) => response.url().includes('/api/chat') && response.request().method() === 'POST',
-    { timeout: 180_000 },
-  )
+  const knownIds = await knownTurnIds(api, session.projectId, session.id)
+  // Keep the refresh window anchored to the HTTP observation; settled determines completion.
+  const responseAt = page
+    .waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/chat' && response.request().method() === 'POST',
+      { timeout: 180_000 },
+    )
+    .then(() => Date.now())
   await page.locator('textarea:visible').last().press('Enter')
-  const assistantResponse = page.getByText('usage-bar-ok', { exact: true }).last()
-  const chatResponse = await chatResponsePromise
-  const turnResponseAt = Date.now()
+  const reply = await completedReply(page, api, session.projectId, session.id, knownIds)
+  const assistantResponse = reply.getByText('usage-bar-ok', { exact: true })
+  const turnResponseAt = await responseAt
   const [turnFinished, refreshedAfterTurn] = await Promise.all([
     visible(assistantResponse, 5_000),
     waitForRequestAfter(requests, turnResponseAt, () => true, 5_000),
   ])
   await step(
     'usage refreshes after a real turn',
-    Boolean(chatResponse) &&
+    Boolean(reply) &&
       turnFinished &&
       Boolean(refreshedAfterTurn) &&
       refreshedAfterTurn.observedAt > turnResponseAt &&
       refreshedAfterTurn.observedAt <= turnResponseAt + 5_000 &&
       requests.length > requestsBeforeTurn,
-    `chatResponse=${Boolean(chatResponse)}, usage-bar-ok=${turnFinished}, refresh=${Boolean(refreshedAfterTurn)}, requests before=${requestsBeforeTurn}, after=${requests.length}, requestTimes=${requests.map((entry) => entry.observedAt).join(',')}, responseAt=${turnResponseAt}`,
+    `settledReply=${Boolean(reply)}, usage-bar-ok=${turnFinished}, refresh=${Boolean(refreshedAfterTurn)}, requests before=${requestsBeforeTurn}, after=${requests.length}, requestTimes=${requests.map((entry) => entry.observedAt).join(',')}, responseAt=${turnResponseAt}`,
   )
 
   const codexTitleAfterTurn = await quotaTooltip(codexQuota)

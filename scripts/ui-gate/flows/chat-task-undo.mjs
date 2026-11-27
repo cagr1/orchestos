@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { parse as yamlParse } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 const FILE = 'notas/undo-check.md'
 
@@ -24,30 +24,12 @@ async function tasksFor(api, projectId) {
   return Array.isArray(response.data?.tasks) ? response.data.tasks : []
 }
 
-async function sendMessage({ page, composer, text, step, shot }) {
-  const previousReplyCount = await page.locator('div.prose').count()
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
-    { timeout: 180_000 },
-  )
+async function sendMessage({ page, api, projectId, sessionId, composer, text }) {
   await composer.fill(text)
   await waitForComposerReady(page)
+  const knownIds = await knownTurnIds(api, projectId, sessionId)
   await composer.press('Enter')
-  let response
-  try {
-    response = await responsePromise
-  } catch {
-    await shot('send-timeout')
-    await step('chat request sent', false, `no /api/chat response for: ${text.slice(0, 60)}`)
-    return null
-  }
-  if (!response.ok())
-    throw new Error(
-      `/api/chat returned HTTP ${response.status()}: ${(await response.text()).slice(0, 500)}`,
-    )
-  const reply = page.locator('div.prose').nth(previousReplyCount)
-  await reply.waitFor({ state: 'visible', timeout: 180_000 })
+  const reply = await completedReply(page, api, projectId, sessionId, knownIds)
   return reply
 }
 
@@ -63,14 +45,20 @@ async function startChat(page, agentName, step, visible, projectRoot) {
   const agent = dialog.getByRole('option', { name: new RegExp(agentName, 'i') }).first()
   await step(`select ${agentName} for new chat`, await visible(agent), 'agent option visible')
   if (!(await agent.isVisible())) return false
+  const created = page.waitForResponse(
+    (res) =>
+      res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat/sessions',
+  )
   await agent.click()
+  const session = await (await created).json()
+  await page.locator(`[data-session-tab="${session.id}"][aria-selected="true"]`).waitFor()
   const composer = page.locator('textarea:visible').last()
   await step(
     'composer visible',
     await visible(composer),
     'chat composer visible after Launch Agent',
   )
-  return composer
+  return { composer, session }
 }
 
 export default async function chatTaskUndoFlow({ page, api, step, shot, visible, cleanup }) {
@@ -129,11 +117,15 @@ export default async function chatTaskUndoFlow({ page, api, step, shot, visible,
   if (!(await projectButton.isVisible())) return
   await projectButton.click()
 
-  const composer = await startChat(page, 'Codex', step, visible, projectRoot)
-  if (!composer) return
+  const started = await startChat(page, 'Codex', step, visible, projectRoot)
+  if (!started) return
+  const { composer, session } = started
 
   const before = new Set((await tasksFor(api, projectId)).map((task) => task.id))
   const first = await sendMessage({
+    api,
+    projectId: projectId,
+    sessionId: session.id,
     page,
     composer,
     text: `Quiero una tarea que cree el archivo \`${FILE}\` con una sola línea: hola. Todavía no crees la tarea; dime solo qué harías.`,
@@ -150,6 +142,9 @@ export default async function chatTaskUndoFlow({ page, api, step, shot, visible,
   )
 
   const second = await sendMessage({
+    api,
+    projectId: projectId,
+    sessionId: session.id,
     page,
     composer,
     text: 'Crea la tarea tal como la describiste.',

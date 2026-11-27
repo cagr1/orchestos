@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { knownTurnIds, waitTurnSettled } from '../lib.mjs'
 
 export default async function chatTimeout(ctx) {
   const { page, step, shot, api, cleanup, databasePath } = ctx
@@ -21,6 +22,7 @@ export default async function chatTimeout(ctx) {
   const prompt =
     'Write a very detailed 20000 word history of mathematics. Think carefully for at least ten seconds before answering; then write the complete essay.'
   await page.locator('textarea:visible').last().fill(prompt)
+  const knownIds = await knownTurnIds(api, session.projectId, session.id)
   const completed = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
     { timeout: 60000 },
@@ -47,6 +49,19 @@ export default async function chatTimeout(ctx) {
     'live no-response counter is visible and counting seconds',
     later > first && !/\d+s ago/.test(firstText),
     `${firstText} → ${later} s`,
+  )
+  const { turnId, settled } = await waitTurnSettled(
+    api,
+    session.projectId,
+    session.id,
+    knownIds,
+    60_000,
+  )
+  await step(
+    'timeout turn settled failed with its reason',
+    settled.outcome === 'failed' &&
+      /no response from .+ in \d+ s|timeout|timed out/i.test(settled.reason ?? ''),
+    JSON.stringify({ turnId, settled }),
   )
   const response = await completed
   const body = await response.json()

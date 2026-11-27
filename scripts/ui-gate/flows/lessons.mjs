@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 async function waitForComposerReady(page) {
   const button = page.locator('button[aria-label="Send message"]:visible').last()
@@ -15,29 +15,14 @@ async function waitForComposerReady(page) {
   throw new Error('composer stayed busy')
 }
 
-async function sendMessage({ page, composer, text, step }) {
-  const previousReplyCount = await page.locator('div.prose').count()
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
-    { timeout: 180_000 },
-  )
+async function sendMessage({ page, api, projectId, sessionId, composer, text, step }) {
   await composer.fill(text)
   await waitForComposerReady(page)
+  const knownIds = await knownTurnIds(api, projectId, sessionId)
   await composer.press('Enter')
-  const response = await responsePromise
-  if (!response.ok())
-    throw new Error(
-      `/api/chat returned HTTP ${response.status()}: ${(await response.text()).slice(0, 500)}`,
-    )
-  const reply = page.locator('div.prose').nth(previousReplyCount)
-  await reply.waitFor({ state: 'visible', timeout: 180_000 })
+  const reply = await completedReply(page, api, projectId, sessionId, knownIds)
   const replyText = (await reply.innerText()).trim()
-  await step(
-    'chat request sent and assistant reply visible',
-    replyText.length > 0,
-    replyText.slice(0, 200),
-  )
+  await step('chat turn completed and reply visible', replyText.length > 0, replyText.slice(0, 200))
   return reply
 }
 
@@ -155,11 +140,24 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
     .getByRole('button', { name: /Claude/i })
     .first()
     .click()
+  const created = page.waitForResponse(
+    (res) =>
+      res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat/sessions',
+  )
   await newChat.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  const session = await (await created).json()
   const composer = page.locator('textarea:visible').last()
   await step('chat composer visible', await visible(composer), 'composer after Start Chat')
 
-  await sendMessage({ page, composer, text: 'Please note the lesson.', step })
+  await sendMessage({
+    api,
+    projectId: session.projectId,
+    sessionId: session.id,
+    page,
+    composer,
+    text: 'Please note the lesson.',
+    step,
+  })
   const autoResponse = await instinctsFor(api, project.id)
   const autoLesson = (autoResponse.data ?? []).find((item) => item.trigger === 'gate trigger auto')
   await step(
@@ -233,7 +231,15 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
 
   await page.keyboard.press('Alt+1')
   await composer.waitFor({ state: 'visible', timeout: 15_000 })
-  await sendMessage({ page, composer, text: 'Use the saved lesson.', step })
+  await sendMessage({
+    api,
+    projectId: session.projectId,
+    sessionId: session.id,
+    page,
+    composer,
+    text: 'Use the saved lesson.',
+    step,
+  })
   const secondArgsPath = join(root, 'turn-2.args')
   const secondTurnDeadline = Date.now() + 180_000
   while (!existsSync(secondArgsPath) && Date.now() < secondTurnDeadline)
@@ -335,7 +341,15 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await shot('lessons-retired')
   await page.keyboard.press('Alt+1')
   await composer.waitFor({ state: 'visible', timeout: 15_000 })
-  await sendMessage({ page, composer, text: 'Check lessons after graduation.', step })
+  await sendMessage({
+    api,
+    projectId: session.projectId,
+    sessionId: session.id,
+    page,
+    composer,
+    text: 'Check lessons after graduation.',
+    step,
+  })
   const thirdArgs = readFileSync(join(root, 'turn-3.args'), 'utf8')
   const lessonsSection = thirdArgs.match(/## Lessons\n([\s\S]*?)(?=\n## |$)/)?.[1] ?? ''
   await step(

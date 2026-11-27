@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 async function tasksFor(api, projectId) {
   const response = await api('/api/tasks', {
@@ -196,46 +196,20 @@ export default async function chatTurnDetails({
       attempt === 1
         ? 'Ejecuta el comando ls en la raíz del proyecto y dime cuántas entradas hay.'
         : `${initialToolPrompt} (intento ${attempt})`
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
-      { timeout: 180_000 },
-    )
     await composer.fill(message)
     await waitForComposerReady(page)
+    const knownIds = await knownTurnIds(api, project.id, session.id)
     await composer.press('Enter')
-    const response = await responsePromise
+    const reply = await completedReply(page, api, project.id, session.id, knownIds)
     observedResponse = true
-    if (!response.ok()) {
-      const body = (await response.text()).slice(0, 500)
-      throw new Error(`/api/chat returned HTTP ${response.status()}: ${body}`)
-    }
-    const deadline = Date.now() + 180_000
-    let timeline
-    while (Date.now() < deadline) {
-      const result = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
-        headers: { 'x-orchestos-project-id': project.id },
-      })
-      timeline = result.data
-      const turns = timeline?.turns ?? []
-      const latestTurn = turns.at(-1)
-      const registeredTools = (latestTurn?.steps ?? []).filter((item) => item.type === 'tool_use')
-      if (registeredTools.length) {
-        toolExecution = registeredTools
-        break
-      }
-      if (!timeline?.pending && timeline?.messages?.some((item) => item.role === 'assistant')) {
-        lastToolReply = (
-          await page
-            .locator('div.prose')
-            .last()
-            .innerText()
-            .catch(() => '')
-        ).trim()
-        break
-      }
-      await delay(250)
-    }
+    const turnId = await reply.getAttribute('data-turn-id')
+    const result = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
+    const turn = result.data?.turns?.find((item) => item.id === turnId)
+    const registeredTools = (turn?.steps ?? []).filter((item) => item.type === 'tool_use')
+    if (registeredTools.length) toolExecution = registeredTools
+    lastToolReply = (await reply.innerText()).trim()
   }
   await step(
     'model used a tool within three attempts',
@@ -292,16 +266,14 @@ export default async function chatTurnDetails({
   const beforeHeldTaskIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
   await composer.fill(heldPrompt)
   await waitForComposerReady(page)
+  const heldReplyIds = await knownTurnIds(api, project.id, session.id)
   await composer.press('Enter')
+  const heldReply = await completedReply(page, api, project.id, session.id, heldReplyIds)
   const taskCard = page.locator('[data-task-state="held"]')
   const heldCardVisible = await visible(taskCard, 180_000)
   if (!heldCardVisible) {
     await shot('held-task-missing')
-    const botResponse = await page
-      .locator('div.prose')
-      .last()
-      .innerText()
-      .catch(() => '(no visible bot response)')
+    const botResponse = await heldReply.innerText().catch(() => '(no visible bot response)')
     await step('held task card visible', false, `bot response: ${botResponse}`)
     return
   }
@@ -339,15 +311,19 @@ export default async function chatTurnDetails({
   const beforeSecondHeldTaskIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
   await composer.fill(heldPrompt)
   await waitForComposerReady(page)
+  const secondHeldReplyIds = await knownTurnIds(api, project.id, session.id)
   await composer.press('Enter')
+  const secondHeldReply = await completedReply(
+    page,
+    api,
+    project.id,
+    session.id,
+    secondHeldReplyIds,
+  )
   const secondCardVisible = await visible(taskCard, 180_000)
   if (!secondCardVisible) {
     await shot('second-held-task-missing')
-    const botResponse = await page
-      .locator('div.prose')
-      .last()
-      .innerText()
-      .catch(() => '(no visible bot response)')
+    const botResponse = await secondHeldReply.innerText().catch(() => '(no visible bot response)')
     await step('second held task card visible', false, `bot response: ${botResponse}`)
     return
   }

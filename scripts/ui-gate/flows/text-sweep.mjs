@@ -1,16 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { run } from '../lib.mjs'
-
-async function waitForAssistant(page, timeoutMs = 180_000) {
-  try {
-    await page.locator('div.prose').last().waitFor({ state: 'visible', timeout: timeoutMs })
-    return true
-  } catch {
-    return false
-  }
-}
+import { completedReply, knownTurnIds, run } from '../lib.mjs'
 
 const staleCopy = [
   'Resume AST sandbox session',
@@ -106,8 +97,16 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
   if (!(await medium.isVisible())) return
   await medium.click()
   await page.locator('textarea:visible').last().fill('Responde únicamente con OK.')
+  const knownIds = await knownTurnIds(api, createdSession.projectId, createdSession.id)
   await page.locator('textarea:visible').last().press('Enter')
-  await step('real Codex response visible', await waitForAssistant(page), 'assistant response')
+  const reply = await completedReply(
+    page,
+    api,
+    createdSession.projectId,
+    createdSession.id,
+    knownIds,
+  )
+  await step('real Codex response visible', await visible(reply), 'assistant response')
 
   const text = await page.locator('body').innerText()
   await step(

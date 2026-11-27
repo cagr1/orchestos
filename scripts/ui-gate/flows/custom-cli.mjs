@@ -9,9 +9,8 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 import { parse, stringify } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { run, waitLaunchSettled, writeGateRoles } from '../lib.mjs'
 
 export default async function customCli({
   page,
@@ -135,6 +134,10 @@ export default async function customCli({
   await page.getByRole('button', { name: basename(root), exact: true }).click()
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('button', { name: 'Tasks', exact: true }).click()
+  const previousLaunchId =
+    (await api('/api/tasks', { headers })).data?.tasks?.find(
+      (task) => task.id === 'gate-custom-cli',
+    )?.launch?.id ?? null
   const [launched] = await Promise.all([
     page.waitForResponse(
       (res) => res.url().includes('/api/tasks/') && res.request().method() === 'POST',
@@ -143,21 +146,21 @@ export default async function customCli({
   ])
   if (!launched.ok())
     throw new Error(`launch failed ${launched.status()}: ${await launched.text()}`)
-  let task
-  const deadline = Date.now() + 10 * 60_000
-  while (Date.now() < deadline) {
-    task = ((await api('/api/tasks', { headers })).data?.tasks ?? []).find(
-      (t) => t.id === 'gate-custom-cli',
-    )
-    if (
-      task?.status === 'done' ||
-      task?.status === 'failed' ||
-      task?.status === 'failed_permanent' ||
-      task?.retryCount > 0
-    )
-      break
-    await delay(1000)
-  }
+  const launch = await waitLaunchSettled(
+    api,
+    project.id,
+    'gate-custom-cli',
+    previousLaunchId,
+    10 * 60_000,
+  )
+  await step(
+    'generic launch completed',
+    launch.settled.outcome === 'completed',
+    JSON.stringify(launch),
+  )
+  const task = (await api('/api/tasks', { headers })).data?.tasks?.find(
+    (task) => task.id === 'gate-custom-cli',
+  )
   const listed = (await api('/api/runs', { headers })).data ?? []
   const result = listed.find((r) => r.taskId === 'gate-custom-cli')
   await step(

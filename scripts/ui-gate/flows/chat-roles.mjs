@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 function runJson(source) {
   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))
@@ -74,18 +74,23 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   )
 
   await shot('dev-agent-selected')
+  const created = page.waitForResponse(
+    (res) =>
+      res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat/sessions',
+  )
   await codexOption.click()
+  const session = await (await created).json()
   // No wait for the agent tab: text typed in the "new" tab while the agent launches must
   // reach the launched session (USO.12 moves the draft).
 
   const composer = page.locator('textarea:visible').last()
-  // A turn counts as sent when its POST /api/chat response arrives and the reply is
-  // visible. Enter while the previous turn is busy is ignored, so retry until sent.
+  // Correlate each persisted reply with the turn that settled.
   let lastTurnMs = null
   let lastTurn = null
+  let lastReply = null
   const sendTurn = async (text) => {
     const startedAt = Date.now()
-    const previousReplyCount = await page.locator('div.prose').count()
+    const knownIds = await knownTurnIds(api, project.id, session.id)
     await composer.fill(text)
     const deadline = Date.now() + 180_000
     const response = page
@@ -112,7 +117,8 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
           autoTask: body?.autoTask ?? null,
           autoTaskSkipped: body?.autoTaskSkipped,
         }
-        const reply = page.locator('div.prose').nth(previousReplyCount)
+        const reply = await completedReply(page, api, project.id, session.id, knownIds)
+        lastReply = reply
         try {
           await reply.waitFor({ state: 'visible', timeout: 180_000 })
           if ((await reply.innerText()).trim()) {
@@ -131,12 +137,8 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   await sendTurn('How many lines are in the README?')
   await step(
     'question turn receives a response',
-    await visible(page.locator('div.prose').last(), 180_000),
-    await page
-      .locator('div.prose')
-      .last()
-      .innerText()
-      .catch(() => 'No response text'),
+    Boolean(lastReply) && (await visible(lastReply, 180_000)),
+    lastReply ? await lastReply.innerText().catch(() => 'No response text') : 'No response text',
   )
   await step(
     'first normal turn latency (ms)',

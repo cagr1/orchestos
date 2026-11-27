@@ -1,0 +1,126 @@
+{
+  "item": "RUN.3.4",
+  "status": "closed by brain; executor stopped by Codex usage limit",
+  "baseline": {
+    "command": "bunx tsc --noEmit",
+    "exitCode": 0
+  },
+  "changes": {
+    "auto-flow": "Turnos correlacionados por turnId; lanzamientos esperan settled=completed, con ID previo antes de aprobar.",
+    "runs-graph": "Sustituye cambio de retryCount/runId por waitLaunchSettled y comprueba completed.",
+    "custom-cli": "Lee launch previo antes de lanzar; espera settled=completed antes de consultar el run.",
+    "restart-mid-run": "Correlaciona launch previo; A espera completed y B/C interrupted al matar el runner.",
+    "chat-context": "Cada envío toma knownTurnIds y lee la respuesta completed por turnId.",
+    "chat-roles": "Conserva HTTP para autoTask; el turno termina con settled y la respuesta se lee por turnId.",
+    "chat-continuity": "Cada envío toma knownTurnIds; compara HTTP y DOM de la respuesta completed correlacionada.",
+    "chat-readonly-shell": "Cada envío toma knownTurnIds; compara el SHA en HTTP y en la respuesta completed por turnId.",
+    "chat-timeout": "Espera el turno concreto failed y verifica su reason de timeout; conserva la clasificación HTTP.",
+    "chat-notices": "El turno normal espera completed; el rechazo 400 de modelo inválido debe carecer de turnId.",
+    "session-message": "Cada envío de la sesión fuente espera su turno completed.",
+    "notifications": "Cada envío usa la sesión y scope de Chat o Dev y espera su turno completed.",
+    "usage-bar": "Espera completed y lee por turnId; conserva el instante HTTP para medir el refresco de uso.",
+    "chat-followup-task": "Captura la sesión creada; ambos envíos leen su respuesta completed por turnId.",
+    "chat-task-roles": "Los cuatro envíos leen su respuesta completed por turnId.",
+    "chat-task-undo": "Captura la sesión creada; ambos envíos leen su respuesta completed por turnId.",
+    "lessons": "Captura la sesión creada; los tres envíos esperan completed y leen por turnId.",
+    "text-sweep": "Espera completed y respuesta correlacionada en lugar de cualquier prosa visible.",
+    "chat-attachments": "Ambas superficies esperan el turno concreto completed; elimina estabilidad textual de 4 segundos.",
+    "chat-streaming": "Conserva el muestreo de streaming; fin por waitTurnSettled del turno concreto en Chat, Dev y reduced motion.",
+    "chat-turn-details": "Espera completed por intento y en los dos envíos de tarea; herramientas consultadas por turnId."
+  },
+  "sharedHelper": "knownTurnIds + completedReply; waitTurnSettled declara project=none para sesiones globales.",
+  "gates": [
+    {
+      "command": "bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows",
+      "exitCode": 1,
+      "logPath": "/tmp/run34-undeclared.log"
+    },
+    {
+      "command": "bun run lint",
+      "exitCode": 1,
+      "logPath": "/tmp/run34-lint.log"
+    },
+    {
+      "command": "bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows",
+      "exitCode": 0,
+      "logPath": "/tmp/run34-undeclared-final.log"
+    },
+    {
+      "command": "bun run lint",
+      "exitCode": 0,
+      "logPath": "/tmp/run34-lint-final.log"
+    }
+  ],
+  "flows": [
+    {
+      "flow": "auto-flow",
+      "command": "bun run gate:evidence -- --label run.3.4-auto-flow -- bun run ui:gate -- auto-flow",
+      "logPath": "/tmp/run34-auto-flow.log",
+      "finished": true,
+      "exitCode": 0,
+      "resultPath": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-57672/result.json",
+      "checks": "35/35"
+    },
+    {
+      "flow": "runs-graph",
+      "command": "bun run gate:evidence -- --label run.3.4-runs-graph -- bun run ui:gate -- runs-graph",
+      "logPath": "/tmp/run34-runs-graph.log",
+      "finished": true,
+      "exitCode": 0,
+      "resultPath": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-68037/result.json",
+      "checks": "16/16"
+    },
+    {
+      "flow": "custom-cli",
+      "command": "bun run gate:evidence -- --label run.3.4-custom-cli -- bun run ui:gate -- custom-cli",
+      "logPath": "/tmp/run34-custom-cli.log",
+      "finished": true,
+      "exitCode": 0,
+      "resultPath": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-71759/result.json",
+      "checks": "14/14"
+    },
+    {
+      "flow": "restart-mid-run",
+      "command": "bun run gate:evidence -- --label run.3.4-restart-mid-run -- bun run ui:gate -- restart-mid-run",
+      "logPath": "/tmp/run34-restart-mid-run.log",
+      "finished": false
+    }
+  ],
+  "brainRuns": [
+    {
+      "flow": "restart-mid-run",
+      "result": "FAIL (entorno)",
+      "detail": "A: launch settled failed — \"codex produced no turn.completed event\": cupo de Codex agotado",
+      "log": "/tmp/run34-restart-mid-run.log"
+    },
+    {
+      "flow": "chat-timeout",
+      "result": "FAIL → gate arreglado (regex del motivo) → PASS 10/10",
+      "log": "/tmp/run34-chat-timeout-2.log"
+    },
+    {
+      "flow": "chat-streaming",
+      "result": "FAIL fuera del cambio",
+      "detail": "diálogo \"Launch new agent\" de Dev sin botón Claude; código no tocado por RUN.3.4; va al triage de la nocturna",
+      "log": "/tmp/run34-chat-streaming.log"
+    },
+    {
+      "flow": "chat-attachments",
+      "result": "FAIL (entorno)",
+      "detail": "turno failed: \"Codex CLI usage limit reached\"",
+      "log": "/tmp/run34-chat-attachments.log"
+    }
+  ],
+  "summary": {
+    "auto-flow": "PASS 35/35 (ejecutor)",
+    "runs-graph": "PASS (ejecutor)",
+    "custom-cli": "PASS (ejecutor)",
+    "chat-timeout": "PASS 10/10 (cerebro)",
+    "pendingNightly": [
+      "restart-mid-run",
+      "chat-attachments",
+      "chat-streaming",
+      "resto de flujos migrados"
+    ]
+  }
+}

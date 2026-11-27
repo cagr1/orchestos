@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 function runJson(source) {
   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))
@@ -20,11 +20,12 @@ async function waitForComposerReady(page) {
   throw new Error(`composer stayed busy ${Date.now() - startedAt} ms`)
 }
 
-async function sendTurn(page, composer, message, note) {
+async function sendTurn(page, api, projectId, sessionId, composer, message, note) {
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
   const readyMs = await waitForComposerReady(page)
   note('composer ready', `enabled after ${readyMs} ms`)
+  const knownIds = await knownTurnIds(api, projectId, sessionId)
   const responsePromise = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
     { timeout: 180_000 },
@@ -37,7 +38,7 @@ async function sendTurn(page, composer, message, note) {
     )
   const apiText = (await response.json()).text
   if (typeof apiText !== 'string') throw new Error('/api/chat response text was not a string')
-  const reply = page.locator('div.prose').last()
+  const reply = await completedReply(page, api, projectId, sessionId, knownIds)
   const deadline = Date.now() + 30_000
   let domText = ''
   while (Date.now() < deadline) {
@@ -152,6 +153,9 @@ export default async function chatContinuity({
   const claudeComposer = page.locator('textarea:visible').last()
   const firstClaude = await sendTurn(
     page,
+    api,
+    null,
+    claudeSession.id,
     claudeComposer,
     `Remember this code for later: ${sentinel}. Reply only OK.`,
     note,
@@ -159,6 +163,9 @@ export default async function chatContinuity({
   await reopenSession(page, api, claudeSession)
   const claudeQuestion = await sendTurn(
     page,
+    api,
+    null,
+    claudeSession.id,
     page.locator('textarea:visible').last(),
     question,
     note,
@@ -190,12 +197,23 @@ export default async function chatContinuity({
   const codexComposer = page.locator('textarea:visible').last()
   await sendTurn(
     page,
+    api,
+    null,
+    codexSession.id,
     codexComposer,
     `Remember this code for later: ${sentinel}. Reply only OK.`,
     note,
   )
   await reopenSession(page, api, codexSession)
-  const codexAnswer = await sendTurn(page, page.locator('textarea:visible').last(), question, note)
+  const codexAnswer = await sendTurn(
+    page,
+    api,
+    null,
+    codexSession.id,
+    page.locator('textarea:visible').last(),
+    question,
+    note,
+  )
   const resumedCapture = readFileSync(
     join(captureDir, `chat-cli-input-${codexSession.id}.txt`),
     'utf8',
@@ -218,7 +236,15 @@ export default async function chatContinuity({
   `)
   if (updated.changes !== 1)
     throw new Error(`Could not replace Codex thread id for ${codexSession.id}`)
-  const afterExpiry = await sendTurn(page, page.locator('textarea:visible').last(), question, note)
+  const afterExpiry = await sendTurn(
+    page,
+    api,
+    null,
+    codexSession.id,
+    page.locator('textarea:visible').last(),
+    question,
+    note,
+  )
   const expiredCapture = readFileSync(
     join(captureDir, `chat-cli-input-${codexSession.id}.txt`),
     'utf8',

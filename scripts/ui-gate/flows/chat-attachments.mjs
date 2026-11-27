@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import { run, writeGateRoles } from '../lib.mjs'
+import { completedReply, knownTurnIds, run, writeGateRoles } from '../lib.mjs'
 
 function plain(text) {
   return text
@@ -191,6 +191,7 @@ export default async function chatAttachments({ page, api, step, shot, visible, 
     )
     await shot(`chat-attachments-composer-${label}`)
 
+    const knownIds = await knownTurnIds(api, session.projectId, session.id)
     const startedAt = Date.now()
     let sent = false
     while (!sent && Date.now() - startedAt < 60_000) {
@@ -214,38 +215,8 @@ export default async function chatAttachments({ page, api, step, shot, visible, 
       JSON.stringify(fileIds),
     )
 
-    const done = await waitFor(async () => {
-      const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
-        headers: { 'x-orchestos-project-id': project.id },
-      })
-      return !timeline.data?.pending &&
-        timeline.data?.messages?.some((message) => message.role === 'assistant')
-        ? timeline.data
-        : null
-    }, 240_000)
-    if (!done) throw new Error(`${label}: Codex did not answer the attachment turn`)
-    // El timeline del backend termina antes de que la UI pinte la respuesta: esperar a que
-    // la última respuesta contenga lo esperado o quede estable.
-    {
-      const reply = page.locator('div.prose').last()
-      await reply.waitFor({ state: 'visible', timeout: 60_000 })
-      const wanted = [token, ...imageWords].map((item) => item.toLowerCase())
-      let previous = ''
-      let stableSince = Date.now()
-      const deadline = Date.now() + 60_000
-      while (Date.now() < deadline) {
-        const current = plain((await reply.innerText()).trim()).toLowerCase()
-        if (wanted.every((item) => current.includes(item))) break
-        if (current !== previous) {
-          previous = current
-          stableSince = Date.now()
-        } else if (current && Date.now() - stableSince > 4000) break
-        await new Promise((resolve) => setTimeout(resolve, 500))
-      }
-    }
-    const answer = plain(
-      (await page.locator('div.prose').allInnerTexts()).at(-1) ?? '',
-    ).toLowerCase()
+    const reply = await completedReply(page, api, session.projectId, session.id, knownIds, 240_000)
+    const answer = plain(await reply.innerText()).toLowerCase()
     await step(
       `${label}: answer contains the token and the image word`,
       answer.includes(token.toLowerCase()) &&
