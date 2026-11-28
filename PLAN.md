@@ -428,9 +428,15 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `chat-attachments` (cupo de Codex agotado a mitad de la corrida), `chat-streaming` (cae antes, en el diálogo
   "Launch new agent" de Dev sin botón Claude: código fuera de RUN.3.4) y el resto. Se cierra con la nocturna del
   2026-11-28. Evidencia parcial: `docs/done/evidence/RUN.3.4-live.json`.
-- [ ] **USO.52 — Una salida declarada faltante no revierte lo que el ejecutor sí escribió.** (propuesto 2026-11-23;
+- [x] **USO.52 — Una salida declarada faltante no revierte lo que el ejecutor sí escribió.** (propuesto 2026-11-23;
   entra 2026-11-27 por el criterio de Carlos "un control guía y verifica, no bloquea sin salida", `NEXT.md` § Pausa)
   Hoy el fallo descarta el trabajo hecho; debe quedar visible como parcial y reintentable.
+  Hecho: con Orca como vara (no revierte), `output_missing` conserva lo escrito (`harness.ts` ~664): con worktree lo
+  integra como commit parcial con `commit_sha`/`commit_base_sha` (Revert funciona); sin worktree no restaura. El
+  reintento cuenta lo conservado por intentos anteriores si sigue en disco; un output preexistente sin tocar sigue
+  faltando. Los demás fallos siguen revirtiendo. Tests en `harness-evidence.test.ts`; `test:coverage` 3284/0.
+  Revisión qa (Codex) encontró P1/P2 en el primer diff; corregidos por `criterio`. Sin gate en vivo (harness, sin UI).
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fix inicial) · Spec: docs/specs/USO.52.md
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

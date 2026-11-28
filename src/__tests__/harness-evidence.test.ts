@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { stringify } from 'yaml'
@@ -44,6 +44,7 @@ beforeAll(async () => {
 
 afterAll(() => {
   db.run("DELETE FROM runs WHERE task_id = 'f3-3-evidence'")
+  db.run("DELETE FROM runs WHERE task_id LIKE 'f3-3-evidence-uso52-%'")
 })
 
 afterEach(() => {
@@ -128,6 +129,7 @@ async function callRunTask(
   modelOverride?: string,
   codes: boolean | null = null,
   requireSpec = false,
+  sandboxBranch?: string,
 ) {
   const { runTask } = await import('../run/harness.ts')
   const { RunLogger } = await import('../run/logger.ts')
@@ -139,7 +141,8 @@ async function callRunTask(
     task,
     modelOverride,
     logger: log,
-    sandboxMode: 'cwd',
+    sandboxMode: sandboxBranch ? 'worktree' : 'cwd',
+    sandboxBranch,
     orcheConfig: {
       ...DEFAULT_CONFIG,
       requireSpec,
@@ -293,6 +296,129 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
         task,
         result,
         'missing declared output(s): out-b.txt',
+        'output_missing',
+      )
+      // USO.52 — lo escrito sobrevive al fallo; el reintento solo completa out-b.txt.
+      expect(readFileSync(join(dir, 'out-a.txt'), 'utf8')).toContain('hello')
+      expect(result.filesWritten).toEqual(['out-a.txt'])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  for (const mode of ['cwd', 'worktree'] as const) {
+    it(`USO.52: retry completes preserved outputs in ${mode}`, async () => {
+      process.env.OPENROUTER_API_KEY = ['test', 'uso52', 'key'].join('-')
+      installMockFetch([
+        () => openRouterResponse('<<<FILE:out-a.txt>>>\nhello\n<<<ENDFILE>>>'),
+        () => openRouterResponse('<<<FILE:out-b.txt>>>\nworld\n<<<ENDFILE>>>'),
+      ])
+      const dir = tmpDir()
+      try {
+        const task = baseTask({
+          id: `f3-3-evidence-uso52-${mode}`,
+          output: ['out-a.txt', 'out-b.txt'],
+        })
+        const git = (...args: string[]) => {
+          const result = Bun.spawnSync(['git', ...args], { cwd: dir })
+          expect(result.exitCode).toBe(0)
+          return result.stdout.toString().trim()
+        }
+        let baseSha: string | undefined
+        const branch = mode === 'worktree' ? 'main' : undefined
+        if (branch) {
+          git('init', '-b', branch)
+          // El código de producción commitea dentro de este repo temporal.
+          git('config', '--local', 'user.name', 'Harness fixture')
+          git('config', '--local', 'user.email', 'fixture@example.test')
+          git(
+            '-c',
+            'user.name=Harness fixture',
+            '-c',
+            'user.email=fixture@example.test',
+            'commit',
+            '--allow-empty',
+            '-m',
+            'fixture',
+          )
+          baseSha = git('rev-parse', 'HEAD')
+        }
+        const first = await callRunTask(task, dir, undefined, null, false, branch)
+        await assertRowForFailure(task, first, 'out-b.txt', 'output_missing')
+        expect(first.status).toBe('retry')
+        expect(readFileSync(join(dir, 'out-a.txt'), 'utf8')).toContain('hello')
+        const { getRun } = await import('../db/runs.ts')
+        const firstRow = getRun(first.runId)!
+        if (branch) {
+          expect(firstRow.commit_sha).toBe(git('rev-parse', 'HEAD'))
+          expect(firstRow.commit_sha).not.toBe(baseSha!)
+          expect(firstRow.commit_base_sha).toBe(baseSha!)
+          expect(git('show', `${firstRow.commit_sha}:out-a.txt`)).toBe('hello')
+        } else {
+          expect(firstRow.commit_sha).toBeNull()
+          expect(firstRow.commit_base_sha).toBeNull()
+        }
+        const second = await callRunTask(
+          { ...task, retry_count: 1 },
+          dir,
+          undefined,
+          null,
+          false,
+          branch,
+        )
+        expect(second.status).toBe('done')
+        expect(getRun(second.runId)!.status).toBe('done')
+        expect(readFileSync(join(dir, 'out-a.txt'), 'utf8')).toContain('hello')
+        expect(readFileSync(join(dir, 'out-b.txt'), 'utf8')).toContain('world')
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+  }
+
+  it('USO.52: a preexisting untouched output still counts as missing', async () => {
+    process.env.OPENROUTER_API_KEY = ['test', 'uso52', 'key'].join('-')
+    installMockFetch([() => openRouterResponse('<<<FILE:out-b.txt>>>\nworld\n<<<ENDFILE>>>')])
+    const dir = tmpDir()
+    try {
+      writeFileSync(join(dir, 'out-a.txt'), 'preexisting')
+      const task = baseTask({
+        id: 'f3-3-evidence-uso52-preexisting',
+        output: ['out-a.txt', 'out-b.txt'],
+      })
+      const result = await callRunTask(task, dir)
+      await assertRowForFailure(
+        task,
+        result,
+        'missing declared output(s): out-a.txt',
+        'output_missing',
+      )
+      expect(readFileSync(join(dir, 'out-a.txt'), 'utf8')).toBe('preexisting')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('USO.52: an output preserved by a previous attempt must still exist', async () => {
+    process.env.OPENROUTER_API_KEY = ['test', 'uso52', 'key'].join('-')
+    installMockFetch([
+      () => openRouterResponse('<<<FILE:out-a.txt>>>\nhello\n<<<ENDFILE>>>'),
+      () => openRouterResponse('<<<FILE:out-b.txt>>>\nworld\n<<<ENDFILE>>>'),
+    ])
+    const dir = tmpDir()
+    try {
+      const task = baseTask({
+        id: 'f3-3-evidence-uso52-deleted',
+        output: ['out-a.txt', 'out-b.txt'],
+      })
+      const first = await callRunTask(task, dir)
+      await assertRowForFailure(task, first, 'out-b.txt', 'output_missing')
+      rmSync(join(dir, 'out-a.txt'))
+      const second = await callRunTask({ ...task, retry_count: 1 }, dir)
+      await assertRowForFailure(
+        task,
+        second,
+        'missing declared output(s): out-a.txt',
         'output_missing',
       )
     } finally {

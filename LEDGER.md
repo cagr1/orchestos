@@ -662,3 +662,11 @@ un run; conserva la derivación de contexto/max_tokens y el contrato de QA.
 **Clasificación**: RESPETÓ.
 **Por qué**: solo cambia la palabra del nombre propio por `User` en dos comentarios (regla 15 de CHK.1); word-diff
 de `src/` confirma que no cambia código. La derivación de `max_tokens` queda intacta.
+
+## 2026-11-28 — Codex (ejecutor USO.52)
+
+**Regla tocada**: `src/run/harness.ts`, comprobación de outputs y persistencia del commit parcial.
+**Clasificación**: RESPETÓ.
+**Por qué**: reconoce outputs conservados por runs `output_missing` de la misma tarea/proyecto solo si
+siguen existiendo, y guarda los SHA del merge parcial. No cambia los demás caminos de fallo, el
+contrato de QA ni la derivación de contexto/max_tokens.

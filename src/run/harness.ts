@@ -17,13 +17,16 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { parseJson, z } from '../boundary/index.ts'
 import { loadOrcheConfig, RoleUnassignedError } from '../config/load.ts'
 import type { OrcheConfig } from '../config/schema.ts'
 import { readUserProfile } from '../config/user-profile.ts'
 import { estimateTokens } from '../context/compress.ts'
 import { getProject } from '../db/projects.ts'
 import { clearRunSteps, insertRunStep } from '../db/run-steps.ts'
-import { insertRun } from '../db/runs.ts'
+import { insertRun, listRunsByTaskId } from '../db/runs.ts'
 import type { ContextWarning } from '../hooks/context-monitor.ts'
 import { checkContextHealth, type RunState, shouldCheck } from '../hooks/context-monitor.ts'
 import { getProvider } from '../providers/index.ts'
@@ -82,6 +85,9 @@ import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 import { costBreakdownToJson } from './transcript-parser.ts'
 
 // -- public types --------------------------------------------------------------
+
+/** `runs.snapshot_before/after`: ruta → hash (o `absent`). */
+const SnapshotSchema = z.record(z.string(), z.string().nullable())
 
 export interface HarnessOpts {
   readProfile?: typeof readUserProfile
@@ -658,20 +664,50 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // en `output` simplemente nunca se escriben y nadie lo detecta determinísticamente.
     // El QA-LLM no es confiable para esto: vio la lista de outputs declarados en el
     // prompt y alucinó que estaban "incluidos" sin verificar contra los archivos reales.
+    const preservedOutputs = new Set<string>()
+    for (const run of listRunsByTaskId(ctx.task.id, runProjectId)) {
+      if (run.failure_kind !== 'output_missing') continue
+      // Un snapshot inválido no prueba que un intento anterior escribiera el output.
+      const previousBefore = parseJson(SnapshotSchema, run.snapshot_before ?? '')
+      const previousAfter = parseJson(SnapshotSchema, run.snapshot_after ?? '')
+      if (!previousBefore.ok || !previousAfter.ok) continue
+      for (const [path, hash] of Object.entries(previousAfter.data)) {
+        if (typeof hash === 'string' && hash !== 'absent' && hash !== previousBefore.data[path]) {
+          preservedOutputs.add(normalizeRelPath(path))
+        }
+      }
+    }
     const missingOutputs = ctx.task.output
       .map(normalizeRelPath)
-      .filter((p) => !contractResult.written.some((f) => f.path === p))
+      .filter(
+        (p) =>
+          !contractResult.written.some((f) => f.path === p) &&
+          !(preservedOutputs.has(p) && existsSync(join(ctx.effectiveRoot, p))),
+      )
     if (missingOutputs.length > 0) {
-      if (!keepWorktree && worktree) {
+      // USO.52 — lo escrito se conserva (como Orca, que no revierte): el reintento solo completa lo que falta.
+      const keptPaths = contractResult.written.map((f) => f.path)
+      let commitSha: string | null = null
+      let commitBaseSha: string | null = null
+      if (worktree && !keepWorktree && keptPaths.length > 0) {
+        commitSha = mergeWorktreeBack(
+          worktree,
+          'commit',
+          `orchestos(${ctx.task.id}): partial — ${ctx.task.description.slice(0, 60)}`,
+          keptPaths,
+        )
+        commitBaseSha = commitSha ? (worktree.mergedBaseSha ?? null) : null
+        worktree = null
+      } else if (worktree && !keepWorktree) {
         mergeWorktreeBack(worktree, 'discard')
         worktree = null
-      } else if (!worktree) {
-        restoreContents(ctx.effectiveRoot, beforeContent)
       }
       const reason = `missing declared output(s): ${missingOutputs.join(', ')}`
       const elapsedMissing = Math.round(performance.now() - t0)
       const runId = insertRun({
         failure_kind: 'output_missing',
+        commit_sha: commitSha,
+        commit_base_sha: commitBaseSha,
         ...(approvalRunStarted ? { id: approvalRunId } : {}),
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
@@ -705,7 +741,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         output_tokens: llmResponse.outputTokens,
         usd_cost: cost,
         elapsed_ms: elapsedMissing,
-        result: `${reason} — reverted ${contractResult.written.length} file(s)`,
+        result: `${reason} — kept ${contractResult.written.length} file(s)`,
       })
       runInserted = true
       log.qaFail(reason, ctx.task.retry_count + 1, MAX_RETRIES)
@@ -716,7 +752,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         qaVerdict: 'fail',
         qaReason: reason,
         retryReason: reason,
-        filesWritten: [],
+        filesWritten: keptPaths,
         filesBlocked: [],
         cost: {
           inputTokens: llmResponse.inputTokens,
@@ -1060,7 +1096,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     }
 
     // v0.12/C.2 — visor de diff (docs/done/design/diff-review-design.md): solo en el camino de éxito,
-    // los caminos de fallo revierten el contenido (restoreContents) así que "lo que cambió"
+    // los caminos de fallo, salvo output_missing, revierten el contenido (restoreContents) así que "lo que cambió"
     // no sobrevive y no tiene valor de revisión.
     const fileDiffs = computeFileDiffs(beforeContent, contractResult.written)
 
