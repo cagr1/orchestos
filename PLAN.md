@@ -431,8 +431,6 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
 - [ ] **USO.52 — Una salida declarada faltante no revierte lo que el ejecutor sí escribió.** (propuesto 2026-11-23;
   entra 2026-11-27 por el criterio de Carlos "un control guía y verifica, no bloquea sin salida", `NEXT.md` § Pausa)
   Hoy el fallo descarta el trabajo hecho; debe quedar visible como parcial y reintentable.
-- [ ] **USO.53 — El ejecutor puede preguntar o escalar en vez de fallar.** (propuesto 2026-11-23; entra 2026-11-27,
-  mismo criterio) Referencia: el `question` de Orca. La pregunta llega al chat y la tarea espera la respuesta.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

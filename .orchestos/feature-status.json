@@ -308,14 +308,6 @@
       "closedDate": null
     },
     {
-      "id": "USO.53",
-      "sprint": "Etapa 2 — Uso real",
-      "block": null,
-      "title": "El ejecutor puede preguntar o escalar en vez de fallar",
-      "status": "open",
-      "closedDate": null
-    },
-    {
       "id": "LRN.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
