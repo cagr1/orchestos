@@ -34,8 +34,8 @@ de formato de Biome: el commit sale bien pero el índice real queda sin formatea
 `item:close`: la línea "Gate en vivo" debe decir navegador/browser/Playwright ("Chromium" solo no
 pasa). Intermitente sin causa: `SQLITE_IOERR_VNODE` (`run-steps.ts:40`); si reaparece, diagnosticar.
 
-Resuelto 2026-11-27 (decisiones fáciles, sin preguntar): rama `origin/cagr1/fix-dashboard-ui-bugs` borrada tras
-pasar su único ítem a PLAN como USO.54; USO.52 y USO.53 entran al PLAN por el criterio "guía, no bloquea";
+Resuelto 2026-11-27 (decisiones fáciles, sin preguntar): rama `origin/cagr1/fix-dashboard-ui-bugs` borrada (su
+ítem "carpetas extra" se descartó: USO.51 ya deja leer cualquier ruta escrita en el chat, sin config); USO.52 y USO.53 entran al PLAN por el criterio "guía, no bloquea";
 evidencia en vivo estricta por ítem descartada (la regla cero ya la exige para UI; un check más sería
 sobreconfigurar); worktrees `sync-*` de MemoriesMD borrados tras rescatar su sync del 2026-11-17 (`ea3a9c1`).
 
